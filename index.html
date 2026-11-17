@@ -2476,7 +2476,7 @@ const CG_DATA = (() => {
   // ======================================================================
   // 1. Configuration & helpers
   // ======================================================================
-  const BUILD = '1.7.2';
+  const BUILD = '1.7.3';
   const W = 640,
     H = 360; // internal canvas resolution; the stage scales it to fit
   const MAX = 8; // terrarium capacity
@@ -14438,13 +14438,7 @@ const CG_DATA = (() => {
     ctx.restore();
     // distant hills and trees
     const hl = clamp((alt + 0.25) / 0.6, 0.2, 1), haze = c.fog * 0.5;
-    const farC = lerpC(lerpC([20, 40, 44], [58, 96, 96], hl), [180, 190, 190], haze), nearC = lerpC([12, 26, 24].map(v => v * (0.5 + hl * 0.8)), [150, 160, 160], haze * 0.8);
-    for (let i = 0; i < 142; i++) {
-      const X = x0 + i * 4, H = WX_HILLS[i];
-      ctx.fillStyle = rgb(farC); const fy = y1 - 30 - H.far; ctx.fillRect(X, fy, 4, y1 - fy);
-      ctx.fillStyle = rgb(nearC); const ny = y1 - 14 - H.near - H.tree; ctx.fillRect(X, ny, 4, y1 - ny);
-      if (H.tree) { ctx.fillRect(X + 1, ny - 4, 2, 4); }
-    }
+    woodsFar(dt, t, S, c, hl, haze); woodsNear(dt, t, S, c, hl, haze);
     if (c.fog > 0.05) { for (let b = 0; b < 3; b++) { ctx.fillStyle = `rgba(226,234,234,${(c.fog * 0.2).toFixed(3)})`; ctx.fillRect(x0, y1 - 70 + b * 24 + Math.sin(t * 0.3 + b) * 4, ww, 30); } ctx.fillStyle = `rgba(226,234,234,${(c.fog * 0.16).toFixed(3)})`; ctx.fillRect(x0, y0, ww, y1 - y0); }
     // rain beyond the glass
     if (c.rain > 0.02) {
@@ -15687,6 +15681,10 @@ const CG_DATA = (() => {
   // ---- what's new
   // newest first; players who skipped an update see everything they missed (up to three versions)
   const CHANGELOG = [
+    { v: '1.7.3', notes: [
+      'The view outside the terrarium window is now a woodland. Big trees stand close on both sides, with a glade in the middle.',
+      'The distance is more detailed: mountains, a ridge of tiny trees, a cabin with a lit window and chimney smoke, a lake, a meadow and a fence. It changes with the seasons, with blossom, autumn leaves and snow.',
+    ] },
     { v: '1.7.2', notes: [
       'Coming back to the terrarium now gets a welcome: bugs hurry over to the glass, the longer you were away the bigger the reaction, and the bugs you are closest to react most.',
       'The first visit each day, one bug brings you a tiny gift (a crumb, a thread of silk, a petal or a coin). Tap it to collect.',
@@ -17762,6 +17760,165 @@ function fitPlate() {
     if (Notification.permission === 'granted' && p.remind === undefined) setPref('remind', true);
     if (Notification.permission === 'default' && remGuideAtLoad && Date.now() >= (p.remindNagAt || 0)) comfortEnqueue(showRemindCard);
   }, 3000);
+  // ======================================================================
+  // 9s. The woods outside the window: big trees close on both sides, a glade
+  //     in the middle, and a detailed distance (two mountain ridges, a ridge of
+  //     tiny trees, a cabin with a lit window, a lake, a meadow and a fence).
+  //     Both layers are cached per season / light / mist and tinted live.
+  // ======================================================================
+  const WD = { far: {}, near: {} };
+  const wdSeason = () => { try { return seasonNow().season; } catch (e) { return 'summer'; } };
+  const WD_PAL = {
+    summer: { mtnF: [[36, 48, 78], [98, 124, 142]], mtnN: [[28, 40, 62], [70, 102, 112]], ridge: [[20, 38, 42], [44, 80, 66]], meadow: [[12, 24, 20], [58, 98, 58]], tree: [[10, 20, 20], [24, 56, 42]], fol: [[[8, 20, 18], [20, 50, 34]], [[16, 40, 30], [34, 82, 48]], [[34, 74, 46], [74, 134, 70]]], water: [[38, 58, 104], [112, 152, 184]] },
+    spring: { mtnF: [[36, 48, 80], [110, 134, 156]], mtnN: [[28, 40, 64], [82, 114, 124]], ridge: [[20, 40, 44], [58, 104, 76]], meadow: [[14, 28, 22], [92, 142, 76]], tree: [[10, 22, 22], [40, 86, 56]], fol: [[[8, 22, 18], [30, 66, 40]], [[22, 54, 36], [52, 108, 60]], [[70, 124, 72], [134, 192, 110]]], water: [[38, 60, 106], [120, 160, 190]] },
+    autumn: { mtnF: [[38, 44, 72], [112, 116, 132]], mtnN: [[34, 40, 58], [92, 98, 104]], ridge: [[34, 32, 28], [96, 70, 34]], meadow: [[20, 22, 16], [120, 104, 52]], tree: [[20, 16, 12], [140, 74, 28]], fol: [[[22, 14, 10], [96, 50, 22]], [[90, 46, 20], [172, 88, 28]], [[176, 98, 34], [232, 152, 50]]], water: [[40, 54, 96], [118, 140, 160]] },
+    winter: { mtnF: [[44, 54, 82], [150, 166, 184]], mtnN: [[40, 50, 72], [128, 146, 160]], ridge: [[30, 38, 52], [168, 182, 194]], meadow: [[34, 44, 58], [204, 214, 222]], tree: [[14, 22, 28], [52, 70, 76]], fol: [[[14, 18, 22], [54, 64, 72]], [[34, 44, 52], [104, 118, 128]], [[170, 188, 200], [240, 246, 252]]], water: [[40, 54, 76], [188, 204, 216]] },
+  };
+  const wdLerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+  const wdCol = (pair, hq, hz, a) => { const m = wdLerp(pair[0], pair[1], hq), f = wdLerp(m, [184, 194, 194], hz * 0.8); return `rgba(${Math.round(f[0])},${Math.round(f[1])},${Math.round(f[2])},${a == null ? 1 : a})`; };
+
+  function wdBlob(g, X0, Y0, cx, cy, r, col, hi, rnd, bare) {
+    g.fillStyle = col;
+    for (let dy = -r; dy <= r; dy += 2) {
+      const hw = Math.floor(Math.sqrt(Math.max(0, r * r - dy * dy)) * (0.84 + 0.16 * rnd()) * (bare ? 0.55 : 1));
+      if (bare && rnd() < 0.4) continue;
+      g.fillRect(Math.round(cx - hw - X0), Math.round(cy + dy - Y0), Math.max(2, hw * 2), 2);
+      if (!bare && rnd() < 0.18) g.fillRect(Math.round(cx + hw - X0), Math.round(cy + dy - Y0 + 2), 2, 4 + Math.floor(rnd() * 4)); // a few leaves hanging down
+    }
+    if (hi) { g.fillStyle = hi; for (let dy = -r; dy <= -r * 0.2; dy += 2) { const hw = Math.floor(Math.sqrt(Math.max(0, r * r - dy * dy)) * 0.62 * (0.8 + 0.2 * rnd()) * (bare ? 0.7 : 1)); g.fillRect(Math.round(cx - hw - r * 0.2 - X0), Math.round(cy + dy - 2 - Y0), Math.max(2, Math.floor(hw * 1.4)), 2); } }
+  }
+  function wdTrunk(g, X0, Y0, xc, w, ya, yb, col, edge, rnd, flare, moss, fungus) {
+    for (let y = ya; y < yb; y += 2) {
+      const t = (y - ya) / (yb - ya), ww = w * (1 + 0.1 * Math.sin(y * 0.07 + xc)) * (1 + (flare ? Math.pow(t, 6) * 0.9 : 0));
+      g.fillStyle = col; g.fillRect(Math.round(xc - ww / 2 - X0), y - Y0, Math.round(ww), 2);
+      g.fillStyle = edge; g.fillRect(Math.round(xc - ww / 2 - X0), y - Y0, 2, 2); g.fillRect(Math.round(xc + ww / 2 - 2 - X0), y - Y0, 2, 2);
+      if (rnd() < 0.2) { g.fillStyle = edge; g.fillRect(Math.round(xc - ww / 2 + 4 + rnd() * (ww - 8) - X0), y - Y0, 2, 6); }
+      if (moss && rnd() < 0.1) { g.fillStyle = moss; g.fillRect(Math.round(xc - ww / 2 - X0), y - Y0, 4 + Math.floor(rnd() * 4), 4); }
+    }
+    if (fungus) for (let i = 0; i < 2; i++) { const fy = ya + (yb - ya) * (0.45 + i * 0.28), fx = xc + (i ? 1 : -1) * w * 0.5; g.fillStyle = fungus; g.fillRect(Math.round(fx - 4 - X0), Math.round(fy - Y0), 8, 3); g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(Math.round(fx - 3 - X0), Math.round(fy + 3 - Y0), 6, 1); }
+  }
+  function wdBranch(g, X0, Y0, x, y, dir, len, th, col, rnd) {
+    let yy = y;
+    for (let i = 0; i < len; i += 2) { g.fillStyle = col; g.fillRect(Math.round(x + dir * i - X0), Math.round(yy - Y0), 4, Math.max(2, Math.round(th * (1 - i / len)) + 2)); yy -= 0.42 + rnd() * 0.26; }
+    return [x + dir * len, yy];
+  }
+
+  function wdBuildFar(sea, hq, hz) {
+    const X0 = WXW.x0, Y0 = WXW.y0, X1 = WXW.x1, Y1 = WXW.y1, cv = document.createElement('canvas');
+    cv.width = X1 - X0; cv.height = Y1 - Y0;
+    const g = cv.getContext('2d'), P = WD_PAL[sea], C = (p, a) => wdCol(p, hq, hz, a), rnd = mulberry(7001);
+    const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x - X0), Math.round(y - Y0), w, h); };
+    const ridge = (x, base, a1, a2, a3, ph) => base - (Math.sin(x * 0.011 + ph) * a1 + Math.sin(x * 0.027 + ph * 2) * a2 + Math.sin(x * 0.061 + ph * 3) * a3);
+    const snow = sea === 'winter' ? wdCol([[120, 130, 150], [244, 248, 252]], hq, hz) : null;
+    // far mountains, then nearer ones
+    for (let X = X0; X < X1; X += 2) {
+      const t1 = ridge(X, Y1 - 58, 24, 11, 4, 1.3); R(X, t1, 2, Y1 - t1, C(P.mtnF));
+      if (snow && t1 < Y1 - 84) R(X, t1, 2, 3, snow); else if (t1 < Y1 - 88) R(X, t1, 2, 2, wdCol([[40, 50, 74], [170, 186, 200]], hq, hz));
+      const t2 = ridge(X, Y1 - 44, 15, 8, 3, 4.1); R(X, t2, 2, Y1 - t2, C(P.mtnN));
+    }
+    // mid ridge with individual tiny trees
+    const rY = x => ridge(x, Y1 - 32, 8, 5, 2, 2.2);
+    for (let X = X0; X < X1; X += 2) { const t = rY(X); R(X, t, 2, Y1 - t, C(P.ridge)); }
+    const treeC = C(P.tree), treeH = wdCol([P.tree[0].map(v => v + 10), P.tree[1].map(v => Math.min(255, v + 26))], hq, hz);
+    for (let X = X0 + 2; X < X1 - 2; X += 4 + Math.floor(rnd() * 7)) {
+      if (X > 452 && X < 496) continue; // room for the cabin
+      const top = rY(X), h = 7 + Math.floor(rnd() * 9), pine = rnd() < 0.55;
+      if (pine) { for (let y = 0; y < h; y += 2) { const hw = 1 + Math.floor(y / 3); R(X - hw, top - h + y + 2, hw * 2, 2, treeC); } R(X - 1, top - h + 1, 2, 2, treeH); }
+      else { R(X - 1, top - 3, 2, 4, treeC); R(X - 4, top - h + 2, 8, h - 4, treeC); R(X - 3, top - h, 6, 2, treeC); R(X - 3, top - h + 2, 3, 2, treeH); }
+    }
+    // the cabin on the ridge
+    const cx = 470, cy = rY(cx);
+    R(cx - 8, cy - 9, 16, 9, wdCol([[20, 16, 14], [92, 66, 46]], hq, hz));
+    for (let i = 0; i < 6; i++) R(cx - 10 + i * 2 + 0, cy - 9 - i * 1.5 - 1, 20 - i * 4 < 4 ? 4 : 20 - i * 4, 2, wdCol([[14, 12, 12], [78, 46, 36]], hq, hz));
+    R(cx - 10, cy - 10, 20, 2, wdCol([[14, 12, 12], [78, 46, 36]], hq, hz)); R(cx - 7, cy - 12, 14, 2, wdCol([[14, 12, 12], [78, 46, 36]], hq, hz)); R(cx - 4, cy - 14, 8, 2, wdCol([[14, 12, 12], [78, 46, 36]], hq, hz));
+    R(cx + 4, cy - 17, 3, 6, wdCol([[24, 20, 20], [110, 96, 90]], hq, hz)); // chimney
+    R(cx - 2, cy - 5, 4, 5, wdCol([[10, 8, 8], [50, 34, 24]], hq, hz)); // door
+    // meadow
+    const mY = x => ridge(x, Y1 - 15, 3, 2, 1, 0.7);
+    for (let X = X0; X < X1; X += 2) { const t = mY(X); R(X, t, 2, Y1 - t, C(P.meadow)); }
+    // lake
+    const lx = 262, ly = Y1 - 10, lw = 54;
+    for (let r = 0; r < 8; r++) { const hw = Math.round(lw * Math.sqrt(1 - Math.pow((r - 3.5) / 4.3, 2))); R(lx - hw, ly - 4 + r, hw * 2, 1, C(P.water)); }
+    for (let r = 0; r < 8; r += 2) { const hw = Math.round(lw * 0.8 * Math.sqrt(1 - Math.pow((r - 3.5) / 4.3, 2))); R(lx - hw * 0.4, ly - 4 + r, hw * 0.9, 1, wdCol([P.water[0].map(v => v + 14), P.water[1].map(v => Math.min(255, v + 24))], hq, hz)); }
+    // fence and meadow flowers
+    for (let X = 338; X < 410; X += 12) { const gy = mY(X); R(X, gy - 4, 2, 6, wdCol([[22, 16, 12], [96, 72, 50]], hq, hz)); }
+    R(338, mY(344) - 2, 72, 1, wdCol([[22, 16, 12], [96, 72, 50]], hq, hz));
+    if (sea === 'spring' || sea === 'summer') for (let i = 0; i < 46; i++) { const fx = X0 + 20 + rnd() * (X1 - X0 - 40), fy = mY(fx) + 3 + rnd() * 6, k = rnd(); R(fx, fy, 2, 2, wdCol(k < 0.35 ? [[60, 50, 70], [236, 220, 120]] : k < 0.65 ? [[70, 50, 60], [244, 244, 236]] : [[70, 40, 60], [222, 120, 170]], hq, hz)); }
+    if (sea === 'autumn') for (let i = 0; i < 30; i++) { const fx = X0 + 20 + rnd() * (X1 - X0 - 40), fy = mY(fx) + 3 + rnd() * 6; R(fx, fy, 2, 2, wdCol(rnd() < 0.5 ? [[60, 30, 16], [200, 100, 30]] : [[60, 20, 16], [170, 60, 34]], hq, hz)); }
+    return { cv, cabin: { x: cx, y: cy }, lake: { x: lx, y: ly, w: lw } };
+  }
+
+  function wdBuildNear(sea, hq, hz) {
+    const X0 = WXW.x0, Y0 = WXW.y0, X1 = WXW.x1, Y1 = WXW.y1, cv = document.createElement('canvas');
+    cv.width = X1 - X0; cv.height = Y1 - Y0;
+    const g = cv.getContext('2d'), P = WD_PAL[sea], C = (p, a) => wdCol(p, hq, hz, a), rnd = mulberry(9001), bare = sea === 'winter';
+    const dark = C(P.fol[0]), mid = C(P.fol[1]), light = C(P.fol[2]);
+    const bark = C([[6, 5, 5], [30, 22, 18]]), barkE = C([[16, 12, 11], [62, 46, 36]]), moss = bare ? null : C([[10, 24, 16], [46, 88, 44]]), fung = C([[30, 24, 20], [176, 134, 92]]);
+    const snowC = wdCol([[120, 130, 150], [240, 246, 252]], hq, hz);
+    const hi = bare ? snowC : light, hiMid = bare ? snowC : null;
+    const BL = (cx, cy, r, col, h) => wdBlob(g, X0, Y0, cx, cy, r, col, h, rnd, bare);
+    // the second pair of trees, a little further in
+    [[X0 + 86, 1], [X1 - 86, -1]].forEach(([xc, d]) => {
+      wdTrunk(g, X0, Y0, xc, 22, Y0 + 26, Y1, mid === dark ? bark : C([[10, 9, 9], [44, 32, 26]]), barkE, rnd, false, moss, null);
+      let [bx, by] = wdBranch(g, X0, Y0, xc + d * 8, Y0 + 70, d, 44, 5, C([[10, 9, 9], [44, 32, 26]]), rnd);
+      BL(bx, by - 6, 16, mid, hiMid);
+      BL(xc, Y0 + 34, 30, mid, hi); BL(xc + d * 24, Y0 + 52, 22, mid, hiMid); BL(xc - d * 18, Y0 + 54, 18, mid, null);
+    });
+    // the big trees at the edges
+    [[X0 + 30, 1], [X1 - 30, -1]].forEach(([xc, d]) => {
+      wdTrunk(g, X0, Y0, xc, 52, Y0 - 2, Y1 + 2, bark, barkE, rnd, true, moss, fung);
+      let [bx, by] = wdBranch(g, X0, Y0, xc + d * 26, Y0 + 60, d, 72, 8, bark, rnd); BL(bx, by - 8, 26, dark, bare ? snowC : mid); BL(bx - d * 24, by - 2, 18, dark, null);
+      if (bare) { g.fillStyle = snowC; g.fillRect(Math.round(xc + d * 26 - X0 - (d < 0 ? 72 : 0)), Math.round(by - Y0 - 4), 72, 2); }
+      [bx, by] = wdBranch(g, X0, Y0, xc + d * 26, Y0 + 14, d, 120, 9, bark, rnd); BL(bx, by - 4, 30, dark, bare ? snowC : mid); BL(bx - d * 50, by - 8, 24, dark, bare ? snowC : mid); BL(bx - d * 90, by - 2, 18, dark, null);
+      for (let i = 0; i < 7; i++) BL(xc + d * (24 + i * 22), Y0 - 4 + (i > 3 ? (i - 3) * 8 : 0), 14 + (7 - i) * 2, dark, i % 2 ? null : hiMid);
+      if (!bare) for (let i = 0; i < 9; i++) { const lx = xc + d * (30 + rnd() * 150), ly = Y0 + 12 + rnd() * 30; g.fillStyle = dark; g.fillRect(Math.round(lx - X0), Math.round(ly - Y0), 2, 5 + Math.floor(rnd() * 6)); }
+      if (sea === 'spring') for (let i = 0; i < 26; i++) { g.fillStyle = wdCol([[60, 40, 50], [244, 190, 210]], hq, hz); g.fillRect(Math.round(xc + d * (10 + rnd() * 160) - X0), Math.round(Y0 + rnd() * 60 - Y0), 2, 2); }
+      if (sea === 'autumn') for (let i = 0; i < 40; i++) { g.fillStyle = wdCol(rnd() < 0.5 ? [[50, 24, 12], [196, 96, 28]] : [[50, 14, 10], [172, 52, 30]], hq, hz); g.fillRect(Math.round(xc + d * (10 + rnd() * 170) - X0), Math.round(Y0 + rnd() * 62 - Y0), 2, 2); }
+    });
+    // ferns and undergrowth at the bottom of the trunks
+    const fern = bare ? C([[30, 38, 46], [150, 166, 176]]) : C([[8, 22, 16], [34, 80, 44]]);
+    [[X0 + 2, X0 + 150], [X1 - 150, X1 - 2]].forEach(([a, b]) => { for (let x = a; x < b; x += 6 + Math.floor(rnd() * 6)) { const h = 4 + Math.floor(rnd() * 8); g.fillStyle = fern; for (let k = 0; k < h; k += 2) { g.fillRect(Math.round(x - X0 + (k % 4 ? 2 : -2)), Math.round(Y1 - 5 - k - Y0), 2, 2); g.fillRect(Math.round(x - X0), Math.round(Y1 - 5 - k - Y0), 2, 2); } } });
+    return { cv };
+  }
+
+  function woodsFar(dt, t, S, c, hl, haze) {
+    const sea = wdSeason(), hq = Math.round(clamp((hl - 0.2) / 0.8, 0, 1) * 12) / 12, hz = Math.round(haze * 8) / 8, key = sea + '|' + hq + '|' + hz;
+    const F = WD.far[key] || (WD.far[key] = wdBuildFar(sea, hq, hz));
+    ctx.drawImage(F.cv, WXW.x0, WXW.y0);
+    const night = clamp((-S.alt + 0.05) * 5, 0, 1);
+    // the lit cabin window and chimney smoke
+    const cb = F.cabin;
+    if (night > 0.02) {
+      ctx.fillStyle = `rgba(255,190,90,${(0.2 * night).toFixed(3)})`; ctx.fillRect(cb.x - 8, cb.y - 10, 8, 7);
+      ctx.fillStyle = `rgba(255,214,130,${(0.95 * night * (0.88 + 0.12 * Math.sin(t * 3.1))).toFixed(3)})`; ctx.fillRect(cb.x - 5, cb.y - 7, 4, 3);
+    }
+    const cold = sea === 'winter' || sea === 'autumn' || night > 0.3;
+    if (cold && c.rain < 0.5 && c.storm < 0.3) for (let i = 0; i < 5; i++) { const k = ((t * 0.12 + i / 5) % 1), a = (1 - k) * 0.35; ctx.fillStyle = `rgba(190,196,204,${a.toFixed(3)})`; ctx.fillRect(Math.round(cb.x + 5 + Math.sin(t * 0.5 + i * 2) * 3 + k * 10), Math.round(cb.y - 19 - k * 22), 2 + Math.round(k * 2), 2); }
+    // glints on the lake
+    const L = F.lake, moon = night > 0.1 && S.moonU > 0 && S.moonU < 1 && S.moon.ill > 0.1;
+    for (let i = 0; i < 4; i++) { const a = Math.max(0, Math.sin(t * 1.3 + i * 1.9)) * (moon ? 0.55 * S.moon.ill : night > 0.1 ? 0 : 0.35 * (1 - c.cloud)); if (a > 0.04) { ctx.fillStyle = (moon ? 'rgba(220,232,255,' : 'rgba(255,248,220,') + a.toFixed(3) + ')'; ctx.fillRect(Math.round(L.x - 24 + i * 15 + Math.sin(t * 0.3 + i) * 3), L.y - 3 + (i % 3) * 2, 4, 1); } }
+  }
+  function woodsNear(dt, t, S, c, hl, haze) {
+    const sea = wdSeason(), hq = Math.round(clamp((hl - 0.2) / 0.8, 0, 1) * 12) / 12, hz = Math.round(haze * 8) / 8, key = sea + '|' + hq + '|' + hz;
+    const N = WD.near[key] || (WD.near[key] = wdBuildNear(sea, hq, hz));
+    ctx.drawImage(N.cv, WXW.x0, WXW.y0);
+    if (c.rain > 0.4 || c.storm > 0.2) return;
+    const x0 = WXW.x0, y0 = WXW.y0, ww = WXW.x1 - WXW.x0, hh = WXW.y1 - WXW.y0, night = clamp((-S.alt + 0.05) * 5, 0, 1);
+    if (sea === 'autumn' || sea === 'spring') {
+      for (let i = 0; i < 12; i++) {
+        const k = (t * 0.045 + i / 12) % 1, x = x0 + 150 + ((i * 97) % 280) + Math.sin(t * 0.9 + i) * 16 + k * 30, y = y0 + 20 + k * (hh - 40);
+        ctx.fillStyle = sea === 'autumn' ? ['rgba(210,110,30,.85)', 'rgba(176,60,34,.85)', 'rgba(224,170,50,.85)'][i % 3] : 'rgba(250,206,222,.85)';
+        ctx.fillRect(Math.round(x / 2) * 2, Math.round(y / 2) * 2, 2, 2);
+      }
+    } else if (sea === 'summer' && night > 0.25) {
+      for (let i = 0; i < 9; i++) {
+        const px = x0 + 120 + ((i * 61) % 330) + Math.sin(t * 0.35 + i * 1.7) * 26, py = y0 + hh - 34 - ((i * 37) % 70) + Math.sin(t * 0.5 + i * 2.3) * 12, a = night * (0.3 + 0.7 * Math.max(0, Math.sin(t * 1.4 + i * 2.1)));
+        if (a < 0.08) continue;
+        ctx.fillStyle = `rgba(230,255,150,${(a * 0.18).toFixed(3)})`; ctx.fillRect(Math.round(px) - 3, Math.round(py) - 3, 7, 7);
+        ctx.fillStyle = `rgba(240,255,170,${a.toFixed(3)})`; ctx.fillRect(Math.round(px), Math.round(py), 2, 2);
+      }
+    }
+  }
   // ---- the frame loop and taps for Starfall Clearing
   function drawClearing(dt, t) {
     const phase = clearingPhaseNow();

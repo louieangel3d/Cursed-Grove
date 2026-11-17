@@ -2476,7 +2476,7 @@ const CG_DATA = (() => {
   // ======================================================================
   // 1. Configuration & helpers
   // ======================================================================
-  const BUILD = '1.7.7';
+  const BUILD = '1.7.8';
   const W = 640,
     H = 360; // internal canvas resolution; the stage scales it to fit
   const MAX = 8; // terrarium capacity
@@ -15714,6 +15714,10 @@ const CG_DATA = (() => {
   // ---- what's new
   // newest first; players who skipped an update see everything they missed (up to three versions)
   const CHANGELOG = [
+    { v: '1.7.8', notes: [
+      'The sky forecast now always has at least 3 things each week. New festivals and gatherings fill the quiet nights: Lantern Festival, Firefly Gathering, Star Festival, Moth Ball, Wisp Parade, Hilltop Bonfires, Kite Day and Balloon Regatta.',
+      'More real meteor showers on their real dates: Taurids, Draconids, Eta and Delta Aquariids and Ursids.',
+    ] },
     { v: '1.7.7', notes: [
       'Lost property in Starfall Clearing now turns up 2 to 5 times a day at random times, and each item is gone again after an hour.',
     ] },
@@ -18009,12 +18013,12 @@ function fitPlate() {
   const evRidgeY = x => wdRidge(x, WXW.y1 - 32, 8, 5, 2, 2.2), evMeadowY = x => wdRidge(x, WXW.y1 - 15, 3, 2, 1, 0.7);
 
   // ---- date-planned sky events
-  const EV_SHOWERS = [[0, 3, 'Quadrantid Meteor Shower'], [0, 4, 'Quadrantid Meteor Shower'], [3, 22, 'Lyrid Meteor Shower'], [7, 12, 'Perseid Meteor Shower'], [7, 13, 'Perseid Meteor Shower'], [9, 21, 'Orionid Meteor Shower'], [10, 17, 'Leonid Meteor Shower'], [10, 18, 'Leonid Meteor Shower'], [11, 13, 'Geminid Meteor Shower'], [11, 14, 'Geminid Meteor Shower']];
+  const EV_SHOWERS = [[0, 3, 'Quadrantid Meteor Shower'], [0, 4, 'Quadrantid Meteor Shower'], [3, 22, 'Lyrid Meteor Shower'], [7, 12, 'Perseid Meteor Shower'], [7, 13, 'Perseid Meteor Shower'], [9, 21, 'Orionid Meteor Shower'], [10, 17, 'Leonid Meteor Shower'], [10, 18, 'Leonid Meteor Shower'], [11, 13, 'Geminid Meteor Shower'], [11, 14, 'Geminid Meteor Shower'], [10, 5, 'Taurid Fireballs'], [10, 12, 'Taurid Fireballs'], [9, 8, 'Draconid Meteor Shower'], [4, 5, 'Eta Aquariid Meteor Shower'], [6, 30, 'Delta Aquariid Meteor Shower'], [11, 22, 'Ursid Meteor Shower']];
   function evNightStart(now) { const d = new Date(now); if (d.getHours() < 12) d.setDate(d.getDate() - 1); d.setHours(19, 0, 0, 0); return d.getTime(); }
-  function evPlanFor(start) {
-    EV.plans = EV.plans || {};
+  function evPlanBase(start) {
+    EV.base = EV.base || {};
     const key = String(start);
-    if (EV.plans[key]) return EV.plans[key];
+    if (EV.base[key]) return EV.base[key];
     const r = mulberry(hashStr('evplan:' + key)), H = 3600000, pl = {}, D = new Date(start), m = D.getMonth(), d = D.getDate();
     const win = (p, lo, hi, span = 9) => { if (r() >= p) return null; const a = start + r() * span * H; return { a, b: a + (lo + r() * (hi - lo)) * 60000 }; };
     pl.aurora = win(1 / 30, 40, 120);
@@ -18031,6 +18035,45 @@ function fitPlate() {
     pl.planets = win(1 / 25, 90, 240);
     pl.nocti = (m === 5 || m === 6) && r() < 0.15 ? { a: start - 1.5 * H, b: start + 1.2 * H } : null;
     pl.zodiac = (m === 2 || m === 3 || m === 8 || m === 9) && r() < 0.18 ? { a: start + 8 * H, b: start + 10.5 * H } : null;
+    EV.base[key] = pl;
+    return pl;
+  }
+  // What the forecast lists for one night (also used to make sure every week has enough going on).
+  function evItemsFor(start, p) {
+    const items = [];
+    if (p.aurora) items.push('Aurora');
+    if (p.shower) items.push(p.shower.name);
+    if (p.comet && p.comet.day === Math.floor(start / 86400000 - Math.floor(start / (7 * 86400000)) * 7) % 7) items.push('Comet');
+    if (p.eclipse) items.push('Lunar eclipse');
+    if (p.solstice) items.push(p.solstice.name + ' lights');
+    if (p.planets) items.push('Planets in a row');
+    if (p.nocti) items.push('Glowing clouds at dusk');
+    if (p.zodiac) items.push('Zodiacal light before dawn');
+    if (p.fest) items.push(p.fest.title);
+    return items;
+  }
+  // Festivals and gatherings: every week gets at least 3 things in the sky forecast.
+  const EV_FESTS = [
+    ['lantern', 'Lantern Festival', 'eve'], ['fireflies', 'Firefly Gathering', 'eve'], ['starfest', 'Star Festival', 'eve'], ['mothball', 'Moth Ball', 'eve'],
+    ['wisps', 'Wisp Parade', 'eve'], ['bonfires', 'Hilltop Bonfires', 'eve'], ['kites', 'Kite Day', 'day'], ['regatta', 'Balloon Regatta', 'dawn'],
+  ];
+  function evWeekStarts(start) {
+    const wk = Math.floor(start / (7 * 86400000)), out = [];
+    for (let i = -8; i <= 8; i++) { const d = new Date(start); d.setDate(d.getDate() + i); d.setHours(19, 0, 0, 0); if (Math.floor(d.getTime() / (7 * 86400000)) === wk) out.push(d.getTime()); }
+    return { wk, days: out };
+  }
+  function evPlanFor(start) {
+    EV.plans = EV.plans || {};
+    const key = String(start);
+    if (EV.plans[key]) return EV.plans[key];
+    const base = evPlanBase(start), pl = Object.assign({}, base), { wk, days } = evWeekStarts(start);
+    const counts = days.map(d => evItemsFor(d, evPlanBase(d)).length), total = counts.reduce((a, b) => a + b, 0), need = Math.max(0, 3 - total);
+    if (need > 0) {
+      const r = mulberry(hashStr('fest:' + wk)), free = days.filter((d, i) => !counts[i]);
+      for (let i = free.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [free[i], free[j]] = [free[j], free[i]]; }
+      const pool = EV_FESTS.slice(); for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+      free.slice(0, need).forEach((d, i) => { if (d === start) { const f = pool[i], H = 3600000; pl.fest = { k: f[0], title: f[1], a: start + (f[2] === 'day' ? 15 : f[2] === 'dawn' ? 10.5 : 0.5) * H, b: start + (f[2] === 'day' ? 21 : f[2] === 'dawn' ? 13 : 8) * H }; } });
+    }
     EV.plans[key] = pl;
     return pl;
   }
@@ -18531,7 +18574,36 @@ function fitPlate() {
   const evDays = ms => ms / 86400000;
   function evSeasonDay() { const d = new Date(), y = d.getFullYear(); return { d, y, doy: Math.floor((d - new Date(y, 0, 0)) / 86400000) }; }
 
+  // ---- festivals and gatherings (planned so every week has a few)
+  const FEST_NAMES = { lantern: 'Lantern Festival', fireflies: 'Firefly Gathering', starfest: 'Star Festival', mothball: 'Moth Ball', wisps: 'Wisp Parade', bonfires: 'Hilltop Bonfires', kites: 'Kite Day', regatta: 'Balloon Regatta' };
+  Object.assign(EV_NAME, {
+    fest_lantern: ['Lantern Festival', 'Hundreds of paper lanterns are rising over the woods.'], fest_fireflies: ['Firefly Gathering', 'The meadow is full of fireflies tonight.'], fest_starfest: ['Star Festival', 'The sky is thick with stars and wishes.'],
+    fest_mothball: ['Moth Ball', 'Glowing moths are dancing around the trees.'], fest_wisps: ['Wisp Parade', 'Wisps are drifting across the meadow in a long line.'], fest_bonfires: ['Hilltop Bonfires', 'Bonfires are burning on the far hills.'],
+    fest_kites: ['Kite Day', 'The sky is full of kites.'], fest_regatta: ['Balloon Regatta', 'Hot-air balloons are drifting across the dawn.'],
+  });
+  function evFestNow() {
+    for (const k in FEST_NAMES) if (EV.force['fest_' + k]) return k;
+    const f = evPlanNow().fest, n = Date.now();
+    return f && n >= f.a && n <= f.b ? f.k : null;
+  }
+  function ev2Fest(layer, dt, t, S, c) {
+    const k = evFestNow(); if (!k) return;
+    const x0 = WXW.x0, x1 = WXW.x1, y0 = WXW.y0, y1 = WXW.y1, ww = x1 - x0, clear = 1 - c.cloud * 0.5, night = S.alt < -0.04, f = (EV.plan && EV.plan.fest && !EV.force['fest_' + k]) ? evFade(EV.plan.fest, 40) : 1;
+    if (layer === 'sky') {
+      if (k === 'lantern' && night) { evLog('fest_lantern'); for (let i = 0; i < 26; i++) { const ph = (t * 0.02 + i * 0.173) % 1, x = x0 + 30 + ((i * 97) % (ww - 60)) + Math.sin(t * 0.7 + i) * 6, y = y1 - 30 - ph * (y1 - y0 - 30), a = f * Math.min(1, ph * 6) * (1 - ph * 0.6); evGlow(x, y, 9, '255,170,70', 0.35 * a); R2(ctx, x - 1, y - 2, 3, 4, `rgba(255,200,110,${a.toFixed(3)})`); } }
+      if (k === 'starfest' && night) { evLog('fest_starfest'); for (let i = 0; i < 80; i++) { const sx = x0 + (i * 71) % ww, sy = y0 + 4 + (i * 37) % (y1 - y0 - 60), a = f * clear * (0.4 + 0.6 * Math.abs(Math.sin(t * 1.3 + i))); ctx.fillStyle = `rgba(255,250,${200 + (i % 5) * 10},${a.toFixed(3)})`; ctx.fillRect(sx, sy, i % 7 === 0 ? 2 : 1, i % 7 === 0 ? 2 : 1); } if (Math.floor(t / 3) % 2 === 0) { const u = (t % 3) / 3; ctx.fillStyle = `rgba(255,255,255,${(1 - u).toFixed(3)})`; ctx.fillRect(x0 + 120 + u * 150, y0 + 20 + u * 60, 3, 1); } }
+      if (k === 'regatta' && S.alt > -0.25 && S.alt < 0.3) { evLog('fest_regatta'); for (let i = 0; i < 5; i++) { const x = x0 + 40 + ((t * 3 + i * 120) % (ww - 20)), y = y0 + 50 + i * 14 + Math.sin(t * 0.3 + i) * 3, cols = ['rgb(200,70,60)', 'rgb(240,200,80)', 'rgb(80,150,220)', 'rgb(120,200,120)', 'rgb(230,230,220)']; ctx.globalAlpha = f * 0.9; R2(ctx, x - 4, y - 7, 9, 9, cols[i]); R2(ctx, x - 2, y - 8, 5, 1, cols[i]); R2(ctx, x - 1, y + 3, 3, 2, 'rgb(110,80,50)'); ctx.globalAlpha = 1; } }
+    } else if (layer === 'ground') {
+      if (k === 'fireflies' && night) { evLog('fest_fireflies'); for (let i = 0; i < 70; i++) { const x = x0 + 20 + ((i * 53) % (ww - 40)) + Math.sin(t * 0.5 + i) * 8, y = evMeadowY(x) - 6 - ((i * 29) % 40) + Math.sin(t * 0.8 + i * 2) * 4, a = f * Math.max(0, Math.sin(t * 1.6 + i * 1.7)); if (a < 0.1) continue; evGlow(x, y, 5, '220,255,140', 0.4 * a); R2(ctx, x, y, 1, 1, `rgba(245,255,190,${a.toFixed(3)})`); } }
+      if (k === 'mothball' && night) { evLog('fest_mothball'); for (let i = 0; i < 18; i++) { const cx = i % 2 ? x1 - 50 : x0 + 50, x = cx + Math.cos(t * 0.9 + i) * (20 + (i % 5) * 6), y = y0 + 90 + (i % 6) * 12 + Math.sin(t * 1.2 + i * 2) * 8, fl = Math.floor(t * 10 + i) % 2; ctx.globalAlpha = f * 0.9; R2(ctx, x - 2, y - fl, 2, 2, 'rgba(210,235,255,.95)'); R2(ctx, x + 1, y - fl, 2, 2, 'rgba(210,235,255,.95)'); R2(ctx, x, y + 1, 1, 2, 'rgba(120,140,170,.9)'); evGlow(x, y, 5, '170,210,255', 0.18 * f); ctx.globalAlpha = 1; } }
+      if (k === 'wisps' && night) { evLog('fest_wisps'); for (let i = 0; i < 9; i++) { const u = ((t * 0.03 + i * 0.11) % 1), x = x0 + 20 + u * (ww - 40), y = evMeadowY(x) - 10 - Math.sin(u * 20 + i) * 6 - 8; evGlow(x, y, 8, '150,230,255', 0.4 * f); R2(ctx, x - 1, y - 1, 3, 3, `rgba(220,250,255,${(0.9 * f).toFixed(3)})`); } }
+      if (k === 'bonfires' && night) { evLog('fest_bonfires'); [150, 215, 300, 360, 430, 500].forEach((x, i) => { const y = evRidgeY(x) + 1, fl = 0.7 + 0.3 * Math.sin(t * 8 + i * 3); evGlow(x, y - 2, 14, '255,140,40', 0.4 * f * fl); R2(ctx, x - 1, y - 4, 3, 3, `rgba(255,${Math.round(190 * fl)},60,${f.toFixed(3)})`); R2(ctx, x, y - 6, 1, 2, `rgba(255,230,140,${f.toFixed(3)})`); }); }
+      if (k === 'kites' && S.alt > 0.05 && c.rain < 0.2) { evLog('fest_kites'); for (let i = 0; i < 6; i++) { const ax = 230 + i * 50, ay = evMeadowY(ax) + 4, kx = ax + Math.sin(t * 0.9 + i) * 14 + 10, ky = y0 + 50 + i * 10 + Math.sin(t * 1.3 + i * 2) * 8, cols = ['rgb(220,60,60)', 'rgb(240,200,60)', 'rgb(60,120,220)', 'rgb(100,200,120)', 'rgb(220,120,220)', 'rgb(255,150,60)']; ctx.globalAlpha = f; ctx.strokeStyle = 'rgba(40,30,20,.4)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.quadraticCurveTo(ax + 4, (ay + ky) / 2 + 8, kx, ky + 4); ctx.stroke(); R2(ctx, kx - 2, ky - 4, 5, 5, cols[i]); R2(ctx, kx - 1, ky + 1, 3, 3, cols[i]); R2(ctx, kx + Math.sin(t * 5 + i), ky + 5, 1, 3, 'rgb(240,240,240)'); ctx.globalAlpha = 1; } }
+    }
+  }
+
   function ev2Sky(dt, t, S, c) {
+    ev2Fest('sky', dt, t, S, c);
     const x0 = WXW.x0, x1 = WXW.x1, y0 = WXW.y0, y1 = WXW.y1, ww = x1 - x0, now = Date.now(), pl = evPlanNow();
     const wk = (typeof wxNow === 'function' ? wxNow().k : 'clear'), night = S.alt < -0.06, clear = 1 - c.cloud;
     const { d, y } = evSeasonDay(), sea = wdSeason();
@@ -18567,6 +18639,7 @@ function fitPlate() {
   }
 
   function ev2Ground(dt, t, S, c) {
+    ev2Fest('ground', dt, t, S, c);
     const x0 = WXW.x0, x1 = WXW.x1, y1 = WXW.y1, ww = x1 - x0, now = Date.now(), wk = (typeof wxNow === 'function' ? wxNow().k : 'clear'), sea = wdSeason();
     const { d } = evSeasonDay(), morning = S.alt > -0.12 && S.alt < 0.2 && S.sunU < 0.5, day = S.alt > 0.08;
     // fog morning with looming shapes
@@ -18611,28 +18684,21 @@ function fitPlate() {
 
   // ---------- the Journal's Outside page ----------
   const OUT_GROUPS = [
-    ['SKY & CALENDAR', ['aurora', 'shower', 'comet', 'blood', 'eclipse', 'harvest', 'solstice', 'supermoon', 'bluemoon', 'planets', 'nocti', 'zodiac', 'sundogs', 'greenflash', 'equinox', 'mammatus', 'wishstar', 'moonface']],
+    ['SKY & CALENDAR', ['aurora', 'shower', 'comet', 'blood', 'eclipse', 'harvest', 'solstice', 'supermoon', 'bluemoon', 'planets', 'nocti', 'zodiac', 'sundogs', 'greenflash', 'equinox', 'mammatus', 'wishstar', 'moonface', 'fest_lantern', 'fest_starfest', 'fest_regatta']],
     ['WEATHER & SEASON', ['rainbow', 'hail', 'windstorm', 'frost', 'snowcap', 'fogmorn', 'sunshower', 'dew', 'lakemist', 'heat', 'shafts', 'puddles', 'thunderhead', 'mushrooms', 'rime', 'web', 'washing', 'firstsnow', 'firstblossom', 'firstleaf']],
     ['VISITORS', ['deer', 'stag', 'doefawn', 'rabbit', 'fox', 'badger', 'hedgehog', 'mouse', 'squirrel', 'cat', 'owl', 'owlTree', 'bats', 'batglass', 'hawk', 'crows', 'woodpecker', 'robin', 'birds', 'geese', 'heron', 'ducks', 'frog', 'butterfly', 'bee', 'ladybird', 'snail', 'spider', 'caterpillar', 'moth', 'dragonfly', 'dragonswarm', 'glowworms', 'wolf']],
-    ['LIGHTS & STRANGE THINGS', ['wisps', 'lantern', 'skylantern', 'balloon', 'kite', 'campfire', 'cabinperson', 'litwindow', 'extratree', 'scarecrow', 'eyes', 'ghostdeer', 'fogfigure', 'watcher', 'watcherPeek', 'cabinflicker', 'fireshape', 'whisper', 'dawnchorus']],
+    ['LIGHTS & STRANGE THINGS', ['fest_fireflies', 'fest_mothball', 'fest_wisps', 'fest_bonfires', 'fest_kites', 'wisps', 'lantern', 'skylantern', 'balloon', 'kite', 'campfire', 'cabinperson', 'litwindow', 'extratree', 'scarecrow', 'eyes', 'ghostdeer', 'fogfigure', 'watcher', 'watcherPeek', 'cabinflicker', 'fireshape', 'whisper', 'dawnchorus']],
   ];
   function sightN() { const s = (state && state.sightings) || {}; return Object.keys(s).filter(k => EV_NAME[k] && s[k] > 0).length; }
   const sightC = k => ((state && state.sightings) || {})[k] || 0;
   const sightAny = (...ks) => ks.reduce((n, k) => n + (sightC(k) > 0 ? 1 : 0), 0);
   const outTotal = () => OUT_GROUPS.reduce((n, g) => n + g[1].length, 0);
   function evForecast(days = 6) {
-    const out = [], base = evNightStart(Date.now());
+    const out = [], base = new Date(evNightStart(Date.now()));
     for (let i = 0; i < days; i++) {
-      const st = base + i * 86400000, p = evPlanFor(st), D = new Date(st), lab = i === 0 ? 'Tonight' : i === 1 ? 'Tomorrow' : D.toLocaleDateString(undefined, { weekday: 'long' }), items = [];
-      if (p.aurora) items.push('Aurora');
-      if (p.shower) items.push(p.shower.name);
-      if (p.comet && p.comet.day === Math.floor(evDays(st) - Math.floor(st / (7 * 86400000)) * 7) % 7) items.push('Comet');
-      if (p.eclipse) items.push('Lunar eclipse');
-      if (p.solstice) items.push(p.solstice.name + ' lights');
-      if (p.planets) items.push('Planets in a row');
+      const dd = new Date(base); dd.setDate(dd.getDate() + i); dd.setHours(19, 0, 0, 0);
+      const st = dd.getTime(), p = evPlanFor(st), D = new Date(st), lab = i === 0 ? 'Tonight' : i === 1 ? 'Tomorrow' : D.toLocaleDateString(undefined, { weekday: 'long' }), items = evItemsFor(st, p);
       if (p.harvestOK) items.push('Harvest moon (if full)');
-      if (p.nocti) items.push('Glowing clouds at dusk');
-      if (p.zodiac) items.push('Zodiacal light before dawn');
       out.push([lab, items]);
     }
     return out;

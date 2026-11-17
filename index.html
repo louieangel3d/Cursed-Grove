@@ -1275,6 +1275,27 @@ button:focus-visible { outline: 3px solid #ffc56a; outline-offset: 2px; }
 .rh-phone { width: 38px; height: 66px; margin: 0 auto; border: 4px solid #e9d7b0; border-radius: 7px; animation: rhTurn 2.4s ease-in-out infinite; }
 @keyframes rhTurn { 0%, 25% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
 @media (orientation: portrait) and (max-width: 820px) { #rotateHint:not(.dismissed) { display: flex; } }
+
+/* ---- journal: achievements and species entries */
+.ach-bar { height: calc(var(--px) * 7); background: rgba(60, 40, 20, .35); border: 2px solid #5a3f25; margin: calc(var(--px) * 3) 0 calc(var(--px) * 6); }
+.ach-bar i { display: block; height: 100%; background: linear-gradient(#f3cd62, #d79a2b); }
+.ach-list { display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--px) * 4); margin-bottom: calc(var(--px) * 6); }
+.ach { display: flex; gap: calc(var(--px) * 6); align-items: flex-start; padding: calc(var(--px) * 5); background: rgba(90, 60, 30, .14); border: 2px solid #9a7a52; opacity: .78; }
+.ach.done { opacity: 1; border-color: #d9a932; background: rgba(243, 205, 98, .22); }
+.ach strong { display: block; font-size: calc(var(--tpx) * 10); }
+.ach span:not(.ach-medal) { display: block; font-size: calc(var(--tpx) * 8.5); opacity: .85; line-height: 1.35; margin: calc(var(--px) * 1) 0 calc(var(--px) * 3); }
+.ach em { font-style: normal; font-size: calc(var(--tpx) * 8); color: #8a5d00; font-weight: 700; letter-spacing: .08em; }
+.ach small { font-size: calc(var(--tpx) * 8); opacity: .8; }
+.ach-prog { height: calc(var(--px) * 4); background: rgba(60, 40, 20, .3); border: 1px solid #7a5a37; margin-bottom: calc(var(--px) * 2); }
+.ach-prog i { display: block; height: 100%; background: #6aa84f; }
+.ach-medal { flex: none; width: calc(var(--px) * 26); height: calc(var(--px) * 26); border-radius: 50%; display: grid; place-items: center; background: #7a6a58; border: 2px solid #4b3d30; }
+.ach.done .ach-medal { background: radial-gradient(circle at 35% 30%, #ffe48a, #d49a22); border-color: #8a5d00; }
+.ach-medal .sc-ico { width: 62%; height: 62%; fill: #f6efe0; }
+.kind-row { display: flex; flex-wrap: wrap; gap: calc(var(--px) * 6); margin: calc(var(--px) * 3) 0 calc(var(--px) * 5); font-size: calc(var(--tpx) * 9); }
+.kind-row span { display: inline-flex; align-items: center; gap: calc(var(--px) * 3); }
+.kind-row .sc-ico { width: calc(var(--px) * 10); height: calc(var(--px) * 10); fill: currentColor; }
+.cog-btn { margin-right: 0; }
+@media (max-width: 700px) { .ach-list { grid-template-columns: 1fr; } }
 </style>
 <style>
 html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; background: #040a07; }
@@ -2334,7 +2355,7 @@ const CG_DATA = (() => {
   // ======================================================================
   // 1. Configuration & helpers
   // ======================================================================
-  const BUILD = '1.6.1';
+  const BUILD = '1.6.2';
   const W = 640,
     H = 360; // internal canvas resolution; the stage scales it to fit
   const MAX = 8; // terrarium capacity
@@ -3790,8 +3811,8 @@ const CG_DATA = (() => {
     const seen = new Set(state.everSeen);
     modal(
       'collection',
-      `<div class="journal-tabs"><button class="shop-tab on" id="tabCollection">COLLECTION</button><button class="shop-tab" id="tabGuide">GUIDE</button><button class="shop-tab" id="tabSatchel">SATCHEL</button></div><p class="panel-eyebrow">FIELD JOURNAL · COLLECTION</p><h2>Woodland Collection</h2>
-       <p>Discovered <strong>${seen.size} of ${types.length}</strong> species. Tap a bug you are caring for to open its card.</p>
+      `${journalTabsHTML('collection')}<p class="panel-eyebrow">FIELD JOURNAL · COLLECTION</p><h2>Woodland Collection</h2>
+       <p>Discovered <strong>${seen.size} of ${types.length}</strong> species. Tap a discovered bug to read its entry.</p>${kindProgressHTML()}
        <p><strong>${state.spores}</strong> spores · ${plural(state.rehomed.length, 'bug')} rehomed with ${MERCHANT.name}.</p>
        <div class="collection-grid" id="collectionGrid"></div>
        <div class="modal-actions"><button class="action" id="collLedgerBtn">${MERCHANT.name.toUpperCase()}'S LEDGER</button></div>
@@ -3819,10 +3840,7 @@ const CG_DATA = (() => {
           label.textContent = known ? sp.name : 'Unknown';
           el.append(cv, label);
           el.addEventListener('click', () => {
-            const owned = state.bugs.find(b => b.type === i) || state.pets.find(b => b && b.type === i);
-            if (owned) inspect(owned.id);
-            else if (state.rehomed.some(r => r.type === i)) showToast(`Rehomed with ${MERCHANT.name} — see the ledger`);
-            else showToast(known ? 'Not currently in your terrarium' : 'Not discovered yet');
+            if (known) showSpecies(i); else showToast('Not discovered yet');
           });
           grid.append(el);
         });
@@ -3834,7 +3852,7 @@ const CG_DATA = (() => {
   function showGuide() {
     modal(
       'guide',
-      `<div class="journal-tabs"><button class="shop-tab" id="tabCollection">COLLECTION</button><button class="shop-tab on" id="tabGuide">GUIDE</button><button class="shop-tab" id="tabSatchel">SATCHEL</button></div><p class="panel-eyebrow">FIELD JOURNAL · HOW TO PLAY</p><h2>Little Cursed Grove</h2>
+      `${journalTabsHTML('guide')}<p class="panel-eyebrow">FIELD JOURNAL · FIELD GUIDE</p><h2>The Field Guide</h2>
        ${bugKeyHTML()}
        <h3>How it works</h3>
        <ul class="guide-tips">
@@ -3853,17 +3871,27 @@ const CG_DATA = (() => {
         <li><strong>Supplies:</strong> ${SHOP.name} sells single-use treats, lever sticks, baits and charms for spores at his hollow oak. They wait in your satchel until used.</li>
         <li><strong>Merchant:</strong> ${MERCHANT.name} rehomes recovered, revealed bugs for spores, and pays a quarter extra for one kind of bug each day.</li>
        </ul>
+`,
+      () => {
+        journalTabs();
+      },
+    );
+  }
+
+  function showSettings() {
+    modal(
+      'guide',
+      `<p class="panel-eyebrow">SETTINGS</p><h2>Settings</h2>
+       ${comfortGuideHTML()}
        <h3>Your save</h3>
        <div class="note">Your game saves on this device. Export a backup now and then and keep the file somewhere safe; import restores it on any device.</div>
        <div class="modal-actions"><button class="action" id="exportSave">⇩ EXPORT SAVE</button><button class="action" id="importSave">⇧ IMPORT SAVE</button></div>
        <div class="modal-actions"><button class="action" id="copySaveCode">COPY SAVE CODE</button><button class="action" id="pasteSaveCode">PASTE SAVE CODE</button></div>
-       ${comfortGuideHTML()}
        <h3>Start a new game</h3>
        <div class="note">Replaces your grove with a fresh one. A backup copy stays on this device, but save a file or code first if you want to keep it.</div>
        <div class="modal-actions"><button class="action danger" id="resetDemo">START A NEW GAME</button></div>
        <p class="build-label">Cursed Grove v${BUILD} · saves on this device</p>`,
       () => {
-        journalTabs();
         $('exportSave').onclick = exportSave;
         comfortWireGuide();
         $('importSave').onclick = () => {
@@ -7528,7 +7556,7 @@ const CG_DATA = (() => {
     const active = activeCharms();
     modal(
       'collection',
-      `<p class="panel-eyebrow">YOUR SATCHEL</p><h2>Supplies</h2>
+      `${journalTabsHTML('satchel')}<p class="panel-eyebrow">YOUR SATCHEL</p><h2>Supplies</h2>
        <p>${sporeTag(state.spores)} spores · ${capacity()} bug spaces · ${searchesLeft()} rocks left to flip today.</p>
        ${active.length ? `<div class="note"><strong>Active now:</strong> ${active.join(' · ')}</div>` : ''}
        ${toysOutHTML()}
@@ -7546,6 +7574,7 @@ const CG_DATA = (() => {
        }
        <div class="modal-actions"><button class="action" id="satchelShop">VISIT ${SHOP.name.toUpperCase()}</button></div>`,
       () => {
+        journalTabs();
         paintIcons($('modalBody'));
         vaultSatchelWire();
         $('satchelShop').onclick = () => {
@@ -15526,6 +15555,11 @@ const CG_DATA = (() => {
   // ---- what's new
   // newest first; players who skipped an update see everything they missed (up to three versions)
   const CHANGELOG = [
+    { v: '1.6.2', notes: [
+      'New Settings menu: tap the cog at the top. Sound, vibration, saves, backups and help now live there.',
+      'The Journal is now a bug encyclopedia: tap any discovered bug for its own entry, see your progress by kind, and read the Field Guide.',
+      'New Achievements tab with 37 things to earn, from your first rescue to completing the whole collection.',
+    ] },
     { v: '1.6.1', notes: [
       'All new sound design: soft, clean effects and quiet weather. Rain and wind only play when it is actually raining or windy.',
       'Sound effects and weather sounds each have their own volume in the Journal Guide.',
@@ -15649,7 +15683,7 @@ const CG_DATA = (() => {
   const onOff = v => (v ? 'ON' : 'OFF');
   function comfortGuideHTML() {
     const p = prefs();
-    return `<h3>Settings</h3>
+    return `<h3>Sound &amp; comfort</h3>
        <div class="modal-actions">
         <button class="action" id="setHaptics">VIBRATION: ${onOff(p.haptics)}</button>
         <button class="action" id="setSkipWalk">SKIP WALKING SCENES: ${onOff(p.skipWalk)}</button>
@@ -15683,7 +15717,7 @@ const CG_DATA = (() => {
 
   // ---- wrappers: backup stamp on file export, a buzz when a rock turns over
   { const _exp = exportSave; exportSave = function () { const r = _exp.apply(this, arguments); comfortBackedUp(); return r; }; }
-  { const _end = endRockChallenge; endRockChallenge = function (result) { const had = !!rockChallenge; const r = _end.apply(this, arguments); if (had && result === 'complete') { buzz([20, 30, 40]); Sfx.rock && Sfx.rock(); } return r; }; }
+  { const _end = endRockChallenge; endRockChallenge = function (result) { const ch = rockChallenge, had = !!ch; const r = _end.apply(this, arguments); if (had && result === 'complete') { buzz([20, 30, 40]); Sfx.rock && Sfx.rock(); statRock(ch); } return r; }; }
 
   // ---- phone held upright: ask for landscape
   (function rotateHint() {
@@ -15749,6 +15783,165 @@ const CG_DATA = (() => {
     const list = [bgTerr, bgWood, bgMerch, mossleSheet, bgShop, keeperSheet, itemSheet, decorSheet, setpieceSheet, bgShelf, jarFront, shelfWide, ...Object.values(giantDecorImages)];
     return Promise.all(list.map(im => vibrantizeImage(im)));
   }
+  // ======================================================================
+  // 9y. The Journal as a bug encyclopedia: species entries, achievements, and the settings cog.
+  // ======================================================================
+  const capFirst = k => k.charAt(0).toUpperCase() + k.slice(1);
+  const JOURNAL_TABS = [['collection', 'COLLECTION'], ['ach', 'ACHIEVEMENTS'], ['guide', 'FIELD GUIDE'], ['satchel', 'SATCHEL']];
+  function journalTabsHTML(active) {
+    const open = '<div class="journal' + '-tabs">';
+    return open + JOURNAL_TABS.map(([k, l]) => `<button class="shop-tab${k === active ? ' on' : ''}" id="tab${capFirst(k)}">${l}</button>`).join('') + '</div>';
+  }
+  function journalTabs() {
+    const go = { Collection: showCollection, Ach: showAchievements, Guide: showGuide, Satchel: showSatchel };
+    Object.keys(go).forEach(k => { const el = $('tab' + k); if (el) el.onclick = go[k]; });
+  }
+
+  // ---- running totals kept in the save (everything else is worked out from what you own)
+  function stats() {
+    if (!state.stats || typeof state.stats !== 'object') state.stats = {};
+    const t = state.stats;
+    ['rocks', 'perfect', 'hatched', 'gifts', 'lost', 'days'].forEach(k => { if (!Number.isFinite(t[k]) || t[k] < 0) t[k] = 0; });
+    if (!t.ach || typeof t.ach !== 'object') t.ach = {};
+    return t;
+  }
+  function statRock(ch) { if (!state) return; const t = stats(); t.rocks++; if (ch && ch.perfect >= 3) t.perfect++; }
+  { const _h = hatchReadyCocoons; hatchReadyCocoons = function () { const n = _h.apply(this, arguments); if (n && state) stats().hatched += n; return n; }; }
+  { const _c = collectGift; collectGift = function () { const r = _c.apply(this, arguments); if (r && state) stats().gifts++; return r; }; }
+
+  // ---- achievements
+  const rescuedAll = () => state.bugs.length + state.pets.length + state.rehomed.length;
+  const speciesFound = () => new Set(state.everSeen).size;
+  const revealedAll = () => state.bugs.filter(b => b.revealed).length + state.pets.filter(b => b && b.revealed).length + state.rehomed.length;
+  const earnedSpores = () => state.rehomed.reduce((n, r) => n + (r.paid || 0), 0);
+  const lettersRead = () => mailState().inbox.filter(l => l.read).length;
+  const ACH_GROUPS = [
+    ['RESCUING', [
+      ['rescue1', 'leaf', 'First Rescue', 'Rescue a bug from under a rock.', 1, rescuedAll],
+      ['rescue10', 'leaf', 'Bug Friend', 'Rescue 10 bugs.', 10, rescuedAll],
+      ['rescue50', 'leaf', 'Bug Whisperer', 'Rescue 50 bugs.', 50, rescuedAll],
+      ['rescue200', 'leaf', 'Grove Guardian', 'Rescue 200 bugs.', 200, rescuedAll],
+      ['rocks1', 'hider', 'Rock Turner', 'Flip a rock all the way over.', 1, () => stats().rocks],
+      ['rocks25', 'hider', 'Stone Flipper', 'Flip 25 rocks.', 25, () => stats().rocks],
+      ['rocks100', 'hider', 'Boulder Champion', 'Flip 100 rocks.', 100, () => stats().rocks],
+      ['rocks500', 'hider', 'Grove Excavator', 'Flip 500 rocks.', 500, () => stats().rocks],
+      ['perfect1', 'curse', 'Steady Hands', 'Stop all three bars perfectly on one rock.', 1, () => stats().perfect],
+      ['perfect10', 'curse', 'Needle Sharp', 'Do it 10 times.', 10, () => stats().perfect],
+      ['perfect50', 'curse', 'Perfect Pitch', 'Do it 50 times.', 50, () => stats().perfect],
+    ]],
+    ['DISCOVERY', [
+      ['spec10', 'tag', 'Curious Collector', 'Discover 10 species.', 10, speciesFound],
+      ['spec25', 'tag', 'Field Naturalist', 'Discover 25 species.', 25, speciesFound],
+      ['spec50', 'tag', 'Keeper of Many', 'Discover 50 species.', 50, speciesFound],
+      ['specAll', 'tag', 'The Whole Encyclopedia', 'Discover every species.', types.length, speciesFound],
+      ['reveal1', 'tag', 'Trait Spotter', 'Reveal a recovered bug\'s rarity tags.', 1, revealedAll],
+      ['reveal10', 'tag', 'Rarity Expert', 'Reveal 10 bugs.', 10, revealedAll],
+    ]],
+    ['HOME & FRIENDS', [
+      ['pet1', 'jar', 'Jar Keeper', 'Keep a bug as a pet.', 1, () => state.pets.length],
+      ['pet3', 'jar', 'Cosy Shelf', 'Keep 3 pets at once.', 3, () => state.pets.length],
+      ['hatch1', 'heart', 'New Arrival', 'Hatch a cocoon.', 1, () => stats().hatched],
+      ['hatch5', 'heart', 'Nursery Keeper', 'Hatch 5 cocoons.', 5, () => stats().hatched],
+      ['gift1', 'gift', 'A Little Thank You', 'Collect a gift from a pet.', 1, () => stats().gifts],
+      ['gift25', 'gift', 'Well-Loved Keeper', 'Collect 25 pet gifts.', 25, () => stats().gifts],
+      ['decor1', 'leaf', 'Home Maker', 'Place a decoration.', 1, () => state.decorations.length],
+      ['decor10', 'leaf', 'Interior Designer', 'Have 10 decorations in the terrarium.', 10, () => state.decorations.length],
+    ]],
+    ['VILLAGE LIFE', [
+      ['rehome1', 'heart', 'A Happy Ending', 'Rehome a bug with Mossle.', 1, () => state.rehomed.length],
+      ['rehome10', 'heart', 'Matchmaker', 'Rehome 10 bugs.', 10, () => state.rehomed.length],
+      ['rehome50', 'heart', 'Mossle\'s Favourite', 'Rehome 50 bugs.', 50, () => state.rehomed.length],
+      ['spores500', 'coin', 'Pocket Change', 'Earn 500 spores from rehoming.', 500, earnedSpores],
+      ['spores5000', 'coin', 'Spore Baron', 'Earn 5,000 spores from rehoming.', 5000, earnedSpores],
+      ['mail1', 'tag', 'Pen Pal', 'Read a letter.', 1, lettersRead],
+      ['mail10', 'tag', 'Postbox Regular', 'Read 10 letters.', 10, lettersRead],
+      ['lost1', 'clock', 'Finders Keepers', 'Hand in lost property at Starfall Clearing.', 1, () => stats().lost],
+      ['lost5', 'clock', 'Lost & Found Hero', 'Hand in 5 pieces of lost property.', 5, () => stats().lost],
+    ]],
+    ['TIME IN THE GROVE', [
+      ['days3', 'clock', 'Regular Visitor', 'Visit on 3 different days.', 3, () => stats().days],
+      ['days7', 'clock', 'Weekly Warden', 'Visit on 7 different days.', 7, () => stats().days],
+      ['days30', 'clock', 'Seasoned Warden', 'Visit on 30 different days.', 30, () => stats().days],
+    ]],
+  ];
+  const ACH = ACH_GROUPS.flatMap(([, list]) => list.map(([id, icon, title, desc, goal, get]) => ({ id, icon, title, desc, goal, get })));
+  function achCheck(quiet) {
+    if (!state) return;
+    const t = stats(), today = dateKey();
+    if (t.dayKey !== today) { t.dayKey = today; t.days++; }
+    const lf = state.lostFound;
+    if (lf && lf.thing && lf.done && !lf.counted) { lf.counted = true; t.lost++; }
+    const fresh = [];
+    ACH.forEach(a => { if (!t.ach[a.id] && a.get() >= a.goal) { t.ach[a.id] = Date.now(); fresh.push(a); } });
+    if (fresh.length) {
+      save();
+      if (!quiet && t.achInit) fresh.slice(0, 3).forEach((a, i) => setTimeout(() => { showToast(`Achievement: ${a.title}`, 3600); Sfx && Sfx.sparkle && Sfx.sparkle(); updateJournalBadge(); }, i * 1800));
+    }
+    if (!t.achInit) { t.achInit = true; save(); }
+  }
+  setInterval(() => { try { if (!document.hidden) achCheck(false); } catch (e) { logError && logError(e.message, 'ach'); } }, 2500);
+  const updateJournalBadge = () => {};
+  function showAchievements() {
+    achCheck(true);
+    const t = stats(), done = ACH.filter(a => t.ach[a.id]).length;
+    modal('collection',
+      `${journalTabsHTML('ach')}<p class="panel-eyebrow">FIELD JOURNAL · ACHIEVEMENTS</p><h2>Achievements</h2>
+       <p><strong>${done} of ${ACH.length}</strong> earned.</p>
+       <div class="ach-bar"><i style="width:${Math.round((done / ACH.length) * 100)}%"></i></div>
+       ${ACH_GROUPS.map(([name, list]) => `<h3>${name}</h3><div class="ach-list">${list.map(([id]) => ACH.find(a => a.id === id)).map(a => {
+         const got = !!t.ach[a.id], n = Math.min(a.goal, a.get()), pct = Math.round((n / a.goal) * 100);
+         return `<div class="ach${got ? ' done' : ''}"><span class="ach-medal">${scIcon(a.icon)}</span><div><strong>${escHTML(a.title)}</strong><span>${escHTML(a.desc)}</span>${got ? '<em>EARNED</em>' : `<div class="ach-prog"><i style="width:${pct}%"></i></div><small>${n.toLocaleString()} / ${a.goal.toLocaleString()}</small>`}</div></div>`;
+       }).join('')}</div>`).join('')}`,
+      () => { journalTabs(); });
+  }
+
+  // ---- species entries
+  function kindProgressHTML() {
+    const seen = new Set(state.everSeen), by = {};
+    types.forEach((sp, i) => { const k = sp.kind; (by[k] = by[k] || [0, 0])[1]++; if (seen.has(i)) by[k][0]++; });
+    return `<div class="kind-row">${['crawler', 'climber', 'flyer', 'hopper', 'hider'].filter(k => by[k]).map(k => `<span>${scIcon(k)}${capFirst(k)}s <b>${by[k][0]}/${by[k][1]}</b></span>`).join('')}</div>`;
+  }
+  function showSpecies(i) {
+    const sp = types[i], known = state.everSeen.includes(i);
+    if (!known) { showToast('Not discovered yet'); return; }
+    const mine = state.bugs.filter(b => b.type === i), pets = state.pets.filter(b => b && b.type === i), gone = state.rehomed.filter(r => r.type === i);
+    const rescued = mine.length + pets.length + gone.length, best = gone.reduce((m, r) => Math.max(m, r.paid || 0), 0);
+    const first = mine.concat(pets)[0];
+    modal('specimen',
+      `<p class="panel-eyebrow">FIELD JOURNAL · ENTRY ${String(i + 1).padStart(3, '0')}</p><h2>${escHTML(sp.name)}</h2>
+       <div class="bug-panel"><div class="bug-portrait" id="spPortrait"></div><div class="bug-facts">
+        <p><em>${escHTML(sp.desc)}</em></p>
+        <p>${scIcon(sp.kind)} <strong>${capFirst(sp.kind)}</strong> · ${escHTML(KIND_NOTE[sp.kind] || '')}</p>
+        <p>Rescued: <strong>${rescued}</strong>${mine.length ? ` · ${mine.length} in the terrarium` : ''}${pets.length ? ` · ${pets.length} in a jar` : ''}${gone.length ? ` · ${gone.length} rehomed` : ''}</p>
+        ${best ? `<p>Best price paid: <strong>${best.toLocaleString()}</strong> spores</p>` : ''}
+       </div></div>
+       <div class="modal-actions">${first ? '<button class="action primary" id="spOpen">OPEN ITS CARD</button>' : ''}<button class="action" id="spBack">BACK TO COLLECTION</button></div>`,
+      () => {
+        const cv = document.createElement('canvas');
+        cv.width = 24; cv.height = 24; cv.style.cssText = 'width:96px;height:96px;image-rendering:pixelated';
+        const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
+        g.drawImage(bugAtlas, 0, 24 * i, 24, 24, 0, 0, 24, 24);
+        $('spPortrait').append(cv);
+        $('spBack').onclick = showCollection;
+        if ($('spOpen')) $('spOpen').onclick = () => inspect(first.id);
+      });
+  }
+
+  // ---- settings cog (top bar)
+  (function cog() {
+    const rows = ['.....##.....', '.#..####..#.', '.##.####.##.', '..########..', '.####..####.', '####....####', '####....####', '.####..####.', '..########..', '.##.####.##.', '.#..####..#.', '.....##.....'];
+    const rects = rows.map((r, y) => [...r].map((ch, x) => (ch === '#' ? `<rect x='${x}' y='${y}' width='1' height='1'/>` : '')).join('')).join('');
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' shape-rendering='crispEdges'><g fill='#f6e2b6'>${rects}</g></svg>`;
+    const css = document.createElement('style');
+    css.textContent = `.cog-btn::before { background-image: url("data:image/svg+xml,${encodeURIComponent(svg)}") !important; background-size: calc(var(--px) * 14) !important; background-repeat: no-repeat !important; background-position: center !important; }`;
+    document.head.appendChild(css);
+    const btn = document.createElement('button');
+    btn.className = 'satchel-btn cog-btn'; btn.id = 'settingsBtn'; btn.type = 'button';
+    btn.setAttribute('aria-label', 'Settings'); btn.title = 'Settings';
+    const chips = document.querySelector('.chips'), snd = $('soundBtn');
+    if (chips) chips.insertBefore(btn, snd || chips.firstChild);
+    btn.addEventListener('click', () => showSettings());
+  })();
   // ---- the frame loop and taps for Starfall Clearing
   function drawClearing(dt, t) {
     const phase = clearingPhaseNow();

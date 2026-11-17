@@ -1313,6 +1313,10 @@ button:focus-visible { outline: 3px solid #ffc56a; outline-offset: 2px; }
 .sc-plate { margin-top: calc(var(--px) * 7); }
 .sc-chips { margin-top: calc(var(--px) * 3); gap: calc(var(--px) * 3); }
 .sc-desc { margin-bottom: calc(var(--px) * 3); }
+.sc-plate { gap: calc(var(--px) * 2); padding: calc(var(--px) * 2) calc(var(--px) * 4); min-width: 0; overflow: hidden; font-size: calc(var(--px) * 8); }
+.sc-plate-no, .sc-plate-kind { letter-spacing: .02em; }
+.sc-plate-kind { gap: calc(var(--px) * 2); }
+.sc-plate-kind svg, .sc-plate-kind canvas, .sc-plate-kind i { flex: none; }
 </style>
 <style>
 html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; background: #040a07; }
@@ -2372,7 +2376,7 @@ const CG_DATA = (() => {
   // ======================================================================
   // 1. Configuration & helpers
   // ======================================================================
-  const BUILD = '1.6.7';
+  const BUILD = '1.6.8';
   const W = 640,
     H = 360; // internal canvas resolution; the stage scales it to fit
   const MAX = 8; // terrarium capacity
@@ -15577,6 +15581,9 @@ const CG_DATA = (() => {
   // ---- what's new
   // newest first; players who skipped an update see everything they missed (up to three versions)
   const CHANGELOG = [
+    { v: '1.6.8', notes: [
+      'The number and type plate under a bug\'s picture now always fits inside its box.',
+    ] },
     { v: '1.6.7', notes: [
       'Bugs now get hungry. Feed your bugs (in the terrarium, in the jars, or from a bug\'s own card) or they will slowly starve. Recovering bugs are safe, and a long break never kills anything on its own.',
       'A bug that dies lies on its back in black and white. Tap it, pick it up, and lay it to rest at the grave in Starfall Clearing. Its friends will be sad and hide for a while.',
@@ -16595,6 +16602,25 @@ const CG_DATA = (() => {
       <div class="modal-actions">${ready && !b.revealed ? '<button class="action primary" id="revealBtn">✦ REVEAL TAGS</button>' : ''}${ready && b.revealed && !isPet ? '<button class="action" id="toMossleBtn">TO MOSSLE</button>' : ''}${!ready && !isPet ? groomButtonHTML(b) : ''}${!isPet ? tankMoveHTML(b) : ''}${canFeed ? `<button class="action${lvl >= 2 ? ' primary' : ''}" id="feedThisBtn"${left <= 0 ? ' disabled' : ''}>${left <= 0 ? 'NO FOOD LEFT' : 'FEED IT'}</button>` : ''}<button class="action" id="treatBtn">TREAT</button>${isPet ? '<button class="action" id="toTankBtn">TO TERRARIUM</button>' : ready && state.pets.some((p, i) => !p && !cocoonInJar(i)) ? '<button class="action" id="toJarBtn">TO A JAR</button>' : ''}<button class="action" id="watchBtn">${isPet ? 'BACK' : 'WATCH'}</button></div>
     </div>`;
   }
+
+// ---- plate under the portrait: shrink text until number + kind sit inside the box
+function fitPlate() {
+  document.querySelectorAll('.sc-plate').forEach(p => {
+    if (!p.offsetWidth) return;
+    p.style.fontSize = '';
+    const kids = [...p.children], cs = getComputedStyle(p);
+    const avail = p.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const need = () => kids.reduce((s, k) => s + k.scrollWidth, 0) + parseFloat(cs.columnGap || 0) * (kids.length - 1);
+    let n = need();
+    if (n > avail && n > 0) {
+      const base = parseFloat(cs.fontSize), px = base / 8;
+      p.style.fontSize = Math.max(4.5 * px, base * avail / n * 0.97) + 'px';
+    }
+  });
+}
+{ let q = 0; new MutationObserver(() => { if (q) return; q = requestAnimationFrame(() => { q = 0; try { fitPlate(); } catch (e) {} }); })
+    .observe(document.body, { subtree: true, childList: true });
+  window.addEventListener('resize', () => { try { fitPlate(); } catch (e) {} }); }
   // ---- the frame loop and taps for Starfall Clearing
   function drawClearing(dt, t) {
     const phase = clearingPhaseNow();

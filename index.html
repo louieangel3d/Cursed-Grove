@@ -2476,7 +2476,7 @@ const CG_DATA = (() => {
   // ======================================================================
   // 1. Configuration & helpers
   // ======================================================================
-  const BUILD = '1.7.8';
+  const BUILD = '1.7.9';
   const W = 640,
     H = 360; // internal canvas resolution; the stage scales it to fit
   const MAX = 8; // terrarium capacity
@@ -6765,7 +6765,7 @@ const CG_DATA = (() => {
   // day; MEDIUM goods turn up about half of the days; RARE goods only now and
   // then. One rare piece is always the day's rare find, and one item is on offer.
   const SHOP_TIERS = {
-    std: { honeydew: 8, peek: 5, grub: 3, oil: 3, chalk: 3, 'heat-warmcap': 4, 'bait-crawler': 2, 'bait-flyer': 2, 'bait-hopper': 2, 'bait-climber': 2, 'bait-hider': 2, ribbon: 4, nametag: 2, 'seed-moss': 6, 'seed-clover': 5, 'seed-mushroom': 4, 'decor-pebble': 3, 'decor-twig': 2 },
+    std: { honeydew: 8, peek: 5, grub: 3, oil: 7, chalk: 3, 'heat-warmcap': 4, 'bait-crawler': 2, 'bait-flyer': 2, 'bait-hopper': 2, 'bait-climber': 2, 'bait-hider': 2, ribbon: 4, nametag: 2, 'seed-moss': 6, 'seed-clover': 5, 'seed-mushroom': 4, 'decor-pebble': 3, 'decor-twig': 2 },
     mid: { jelly: 3, basket: 2, twig: 2, goldbait: 2, glitter: 2, ticket: 2, 'heat-embercap': 2, glimmer: 1, incense: 2, 'seed-ivy': 3, 'seed-glowcap': 2, 'decor-log': 2, 'decor-crystal': 1, 'decor-hideaway': 1, 'decor-dripcrystal': 1, 'decor-firefly': 1, 'decor-waterbowl': 1 },
     rare: { nectar: 1, truffle: 1, gilded: 1, sparkle: 1, lure: 1, 'heat-hearthcap': 1, 'seed-tallcap': 1, 'seed-mooncap': 1, 'decor-runestone': 1, 'decor-fountain': 1, 'decor-grandlog': 1, 'decor-rootarch': 1, 'decor-crystalgarden': 1 },
   };
@@ -15714,6 +15714,9 @@ const CG_DATA = (() => {
   // ---- what's new
   // newest first; players who skipped an update see everything they missed (up to three versions)
   const CHANGELOG = [
+    { v: '1.7.9', notes: [
+      'Lantern Oil (puts one rock back) is always on Oakley\'s shelf now and no longer runs out for the day. The Picnic Basket (three rocks) is the one that comes and goes.',
+    ] },
     { v: '1.7.8', notes: [
       'The sky forecast now always has at least 3 things each week. New festivals and gatherings fill the quiet nights: Lantern Festival, Firefly Gathering, Star Festival, Moth Ball, Wisp Parade, Hilltop Bonfires, Kite Day and Balloon Regatta.',
       'More real meteor showers on their real dates: Taurids, Draconids, Eta and Delta Aquariids and Ursids.',

@@ -1,4 +1,4 @@
-CURSED GROVE v1.7.8 - phone install
+CURSED GROVE v1.7.9 - phone install
 
 1. Put the files in this folder on any HTTPS web host (GitHub Pages, Netlify Drop, Cloudflare Pages, your own site).
 2. Open the page on your phone:

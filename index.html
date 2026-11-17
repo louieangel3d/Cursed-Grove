@@ -1296,6 +1296,23 @@ button:focus-visible { outline: 3px solid #ffc56a; outline-offset: 2px; }
 .kind-row .sc-ico { width: calc(var(--px) * 10); height: calc(var(--px) * 10); fill: currentColor; }
 .cog-btn { margin-right: 0; }
 @media (max-width: 700px) { .ach-list { grid-template-columns: 1fr; } }
+
+.ach-rew { margin: calc(var(--px) * 3) 0 0; font-size: calc(var(--tpx) * 8); color: #6b4a12; line-height: 1.35; overflow-wrap: anywhere; }
+.ach-rew.got { opacity: .55; text-decoration: line-through; }
+.ach > div { min-width: 0; }
+.shop-tabs .shop-tab { font-size: calc(var(--px) * 5.4); letter-spacing: -.06em; }
+.ach-claim { display: block; width: auto; min-height: 0; margin: 0 0 calc(var(--px) * 6); padding: calc(var(--px) * 4) calc(var(--px) * 10); }
+
+.hunger-line { margin: calc(var(--px) * 4) 0 calc(var(--px) * 2); font-size: calc(var(--tpx) * 9); position: relative; z-index: 1; }
+.hunger-line b { letter-spacing: .08em; margin-right: calc(var(--px) * 4); opacity: .7; }
+.hunger-line.l2, .hunger-line.l3 { color: #9a3a22; font-weight: 700; }
+.hunger-actions { position: relative; z-index: 1; margin-top: calc(var(--px) * 2); }
+.sc-chips .metric.food.l2 strong, .sc-chips .metric.food.l3 strong { color: #9a3a22; }
+.sc-chips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sc-main { grid-template-columns: calc(var(--px) * 98) minmax(0, 1fr); gap: calc(var(--px) * 13); }
+.sc-plate { margin-top: calc(var(--px) * 7); }
+.sc-chips { margin-top: calc(var(--px) * 3); gap: calc(var(--px) * 3); }
+.sc-desc { margin-bottom: calc(var(--px) * 3); }
 </style>
 <style>
 html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; background: #040a07; }
@@ -2355,7 +2372,7 @@ const CG_DATA = (() => {
   // ======================================================================
   // 1. Configuration & helpers
   // ======================================================================
-  const BUILD = '1.6.6';
+  const BUILD = '1.6.7';
   const W = 640,
     H = 360; // internal canvas resolution; the stage scales it to fit
   const MAX = 8; // terrarium capacity
@@ -3278,7 +3295,7 @@ const CG_DATA = (() => {
     merchant: ['homeBtn', 'mapBtn', 'collectionBtn'],
     shop: ['homeBtn', 'mapBtn', 'collectionBtn'],
     clearing: ['homeBtn', 'mapBtn', 'collectionBtn'],
-    shelf: ['homeBtn', 'mapBtn', 'collectionBtn'],
+    shelf: ['feedBtn', 'homeBtn', 'mapBtn', 'collectionBtn'],
   };
   const NAV_IDS = ['feedBtn', 'homeBtn', 'mapBtn', 'woodsBtn', 'merchantBtn', 'shopBtn', 'clearingBtn', 'collectionBtn'];
   function setScene(next) {
@@ -4663,7 +4680,7 @@ const CG_DATA = (() => {
           a.nibble = Math.floor(t * 8) % 2;
           if (Math.random() < dt * 0.6) effects.push({ kind: 'heart', x: a.x, y: a.y - 16, age: 0, life: 1.2 });
           if (a.timer <= 0) {
-            if (a.crumb) a.crumb.age = a.crumb.life; // eaten
+            if (a.crumb) { a.crumb.age = a.crumb.life; feedBug(b, true); } // eaten
             a.crumb = null;
             a.nibble = 0;
             decide(a, b);
@@ -5007,7 +5024,7 @@ const CG_DATA = (() => {
       const waiting = particles.some(c => c.kind === 'crumb' && c.landed && !c.claimedBy);
       if (waiting)
         for (const a of animations)
-          if (['idle', 'walk', 'perch', 'hide', 'beg', 'follow', 'sleep', 'nap'].includes(a.state) && a.then !== 'eat' && Math.random() < 0.02 * (a.persona.bold ? 2 : 1) * (a.persona.sleepy ? 0.5 : 1)) {
+          if (['idle', 'walk', 'perch', 'hide', 'beg', 'follow', 'sleep', 'nap'].includes(a.state) && a.then !== 'eat' && Math.random() < 0.02 * (a.persona.bold ? 2 : 1) * (a.persona.sleepy ? 0.5 : 1) * (hungerLevel(findVisibleBug(a.id)) >= 1 ? 4 : 1)) {
             const bb = findVisibleBug(a.id);
             if (bb) decide(a, bb);
           }
@@ -8633,17 +8650,17 @@ const CG_DATA = (() => {
 
   // ---------------------------------------------------------------- hand feeding
   // FEED arms feeding; each tap in the terrarium drops a pinch from that spot.
-  const PINCHES = 6,
+  const PINCHES = 9,
     CRUMBS_PER_PINCH = 3;
   let feeding = false;
   const feedLeft = () => (state.fed === dateKey() ? Math.max(0, Number(state.feedLeft) || 0) : PINCHES);
   function feed() {
     if (decorMode) stopDecorating();
-    if (!state.bugs.length) return showToast('No bugs in the terrarium');
+    if (scene === 'shelf' ? !state.pets.length : !state.bugs.length) return showToast(scene === 'shelf' ? 'No pets in the jars yet' : 'No bugs in the terrarium');
     if (feedLeft() <= 0) return showToast('Already fed today');
     feeding = !feeding;
     updateHUD();
-    showToast(feeding ? 'Tap in the terrarium to drop a pinch of food' : 'Food put away');
+    showToast(feeding ? (scene === 'shelf' ? 'Tap a jar to feed the pets inside' : 'Tap in the terrarium to drop a pinch of food') : 'Food put away');
   }
   function dropFood(x, y) {
     const left = feedLeft();
@@ -10067,6 +10084,7 @@ const CG_DATA = (() => {
     ['yawn', 'Sleepy', 'Getting tired or about to nap. Sleepy bugs do this a lot.'],
     ['z', 'Asleep', 'Fast asleep. Most bugs huddle under the log at night, apart from the moonlit ones. Bugs that are properly asleep (not just napping) sometimes dream in a pale bubble: a moon, a mushroom, a honey jar, a friend. Most of a night\'s dreams share a theme, so watch for a storm, a fallen meteor or a new best friend turning up in them.'],
     ['crumb', 'Hungry', 'It has spotted food, or is begging for some.'],
+    ['sad', 'Sad', 'A bug that is starving, or grieving a friend that has died. Feed hungry bugs, and give the others time.'],
     ['sneeze', 'Sneeze', 'Just a tiny sneeze. It means nothing, and it is very sweet.'],
     ['sparkle', 'Sparkles', 'Shiny and magical bugs glitter as they move. It is a sign of the trait, not a mood.'],
   ];
@@ -10157,7 +10175,7 @@ const CG_DATA = (() => {
   // as layers; only the small living things are drawn every frame.
   const CLR = { phase: null, prevPhase: null, fade: 1, cache: {}, base: null, override: null, rest: { x: 222, y: 290 }, box: { x: 512, y: 254 }, rocks: [], things: null, leaves: [], flies: [], birds: [], flutter: [], shoot: null, nextRare: 0, rare: null, mist: [] };
   const CLR_PHASES = ['morning', 'midday', 'evening', 'night'];
-  const CLR_NAMES = { morning: 'The Dewlit Grove', midday: 'The Sunlit Clearing', evening: 'The Golden Hour', night: 'The Starlit Glade' };
+  const CLR_NAMES = { morning: 'Dewlit Grove', midday: 'Sunlit Clearing', evening: 'Golden Hour', night: 'Starlit Glade' };
   function clearingPhaseNow(d = new Date()) {
     if (CLR.override) return CLR.override;
     const h = d.getHours() + d.getMinutes() / 60;
@@ -15559,8 +15577,16 @@ const CG_DATA = (() => {
   // ---- what's new
   // newest first; players who skipped an update see everything they missed (up to three versions)
   const CHANGELOG = [
+    { v: '1.6.7', notes: [
+      'Bugs now get hungry. Feed your bugs (in the terrarium, in the jars, or from a bug\'s own card) or they will slowly starve. Recovering bugs are safe, and a long break never kills anything on its own.',
+      'A bug that dies lies on its back in black and white. Tap it, pick it up, and lay it to rest at the grave in Starfall Clearing. Its friends will be sad and hide for a while.',
+      'Pets in the jars can be fed too: press FEED on the pet shelf and tap a jar.',
+      'The bug card is tidier: every fact shows once, so it fits on one screen without scrolling.',
+    ] },
     { v: '1.6.6', notes: [
       'The name plates under the pet jars are gone, and the jars are taller so your pets have more room to climb and fly.',
+      'Achievements now give rewards: a little spore money and small helpful items. Open the Achievements tab in the Journal and press CLAIM.',
+      'Long labels in the top bar (like Sunlit Clearing) now shrink to fit their box.',
     ] },
     { v: '1.6.5', notes: [
       'The Scarab Grub and Tomato Hornworm are redrawn as proper caterpillars that inch along, instead of stiff curls. The Caddis Larva now paddles its legs.',
@@ -15901,6 +15927,8 @@ const CG_DATA = (() => {
       ['gift25', 'gift', 'Well-Loved Keeper', 'Collect 25 pet gifts.', 25, () => stats().gifts],
       ['decor1', 'leaf', 'Home Maker', 'Place a decoration.', 1, () => state.decorations.length],
       ['decor10', 'leaf', 'Interior Designer', 'Have 10 decorations in the terrarium.', 10, () => state.decorations.length],
+      ['bury1', 'heart', 'Final Respects', 'Lay a bug to rest at Starfall Clearing.', 1, () => (state.graves || []).length],
+      ['bury5', 'heart', 'Gentle Goodbyes', 'Lay 5 bugs to rest.', 5, () => (state.graves || []).length],
     ]],
     ['VILLAGE LIFE', [
       ['rehome1', 'heart', 'A Happy Ending', 'Rehome a bug with Mossle.', 1, () => state.rehomed.length],
@@ -15920,6 +15948,44 @@ const CG_DATA = (() => {
     ]],
   ];
   const ACH = ACH_GROUPS.flatMap(([, list]) => list.map(([id, icon, title, desc, goal, get]) => ({ id, icon, title, desc, goal, get })));
+  // ---- achievement rewards: modest spores plus a few small, cheap-to-medium shop items.
+  // Nothing here is a rare treat, truffle, heat-shroom above tier II, name tag or terrarium slot,
+  // so rewards help along the way without bypassing the shop or the rocks.
+  const REWARDS = {
+    rescue1: [100], rescue10: [200, ['honeydew']], rescue50: [500, ['peek']], rescue200: [1200, ['jelly']],
+    rocks1: [100], rocks25: [250], rocks100: [500, ['oil']], rocks500: [1200, ['basket']],
+    perfect1: [150], perfect10: [400, ['chalk']], perfect50: [1000, ['goldbait']],
+    spec10: [200], spec25: [350, ['twig']], spec50: [700, ['lure']], specAll: [2000, ['incense']],
+    reveal1: [100, ['peek']], reveal10: [400, ['peek', 'peek']],
+    pet1: [150], pet3: [300, ['heat-warmcap']], hatch1: [150, ['heat-warmcap']], hatch5: [500, ['heat-embercap']],
+    gift1: [100], gift25: [600, ['grub']], decor1: [100], decor10: [500],
+    rehome1: [100], rehome10: [300, ['ribbon']], rehome50: [1000, ['ribbon', 'ribbon']],
+    spores500: [150], spores5000: [800], mail1: [80], mail10: [300, ['ticket']],
+    lost1: [150], lost5: [500, ['oil']],
+    days3: [100], days7: [250, ['honeydew']], days30: [1000, ['jelly']],
+  };
+  function rewardText(id) {
+    const r = REWARDS[id]; if (!r) return '';
+    const parts = [];
+    if (r[0]) parts.push(`${r[0].toLocaleString()} spores`);
+    const n = {}; (r[1] || []).forEach(i => { n[i] = (n[i] || 0) + 1; });
+    Object.keys(n).forEach(i => { const it = ITEM[i]; if (it) parts.push(`${n[i] > 1 ? n[i] + ' × ' : ''}${it.name}`); });
+    return parts.join(' + ');
+  }
+  function claimRewards() {
+    const t = stats(); if (!t.claimed || typeof t.claimed !== 'object') t.claimed = {};
+    let spores = 0, items = 0;
+    ACH.forEach(a => {
+      if (!t.ach[a.id] || t.claimed[a.id] || !REWARDS[a.id]) return;
+      t.claimed[a.id] = Date.now();
+      const r = REWARDS[a.id];
+      if (r[0]) { state.spores = (state.spores || 0) + r[0]; spores += r[0]; }
+      (r[1] || []).forEach(i => { if (ITEM[i]) { state.inventory[i] = (state.inventory[i] || 0) + 1; items++; } });
+    });
+    if (spores || items) { save(); updateHUD(); }
+    return { spores, items };
+  }
+  const unclaimedAch = () => { const t = stats(), c = t.claimed || {}; return ACH.filter(a => t.ach[a.id] && !c[a.id] && REWARDS[a.id]); };
   function achCheck(quiet) {
     if (!state) return;
     const t = stats(), today = dateKey();
@@ -15930,7 +15996,7 @@ const CG_DATA = (() => {
     ACH.forEach(a => { if (!t.ach[a.id] && a.get() >= a.goal) { t.ach[a.id] = Date.now(); fresh.push(a); } });
     if (fresh.length) {
       save();
-      if (!quiet && t.achInit) fresh.slice(0, 3).forEach((a, i) => setTimeout(() => { showToast(`Achievement: ${a.title}`, 3600); Sfx && Sfx.sparkle && Sfx.sparkle(); updateJournalBadge(); }, i * 1800));
+      if (!quiet && t.achInit) fresh.slice(0, 3).forEach((a, i) => setTimeout(() => { showToast(`Achievement: ${a.title} · reward ready`, 3600); Sfx && Sfx.sparkle && Sfx.sparkle(); updateJournalBadge(); }, i * 1800));
     }
     if (!t.achInit) { t.achInit = true; save(); }
   }
@@ -15943,11 +16009,16 @@ const CG_DATA = (() => {
       `${journalTabsHTML('ach')}<p class="panel-eyebrow">FIELD JOURNAL · ACHIEVEMENTS</p><h2>Achievements</h2>
        <p><strong>${done} of ${ACH.length}</strong> earned.</p>
        <div class="ach-bar"><i style="width:${Math.round((done / ACH.length) * 100)}%"></i></div>
+       ${unclaimedAch().length ? `<button class="action primary ach-claim" id="achClaim">CLAIM ${unclaimedAch().length} REWARD${unclaimedAch().length > 1 ? 'S' : ''}</button>` : ''}
        ${ACH_GROUPS.map(([name, list]) => `<h3>${name}</h3><div class="ach-list">${list.map(([id]) => ACH.find(a => a.id === id)).map(a => {
          const got = !!t.ach[a.id], n = Math.min(a.goal, a.get()), pct = Math.round((n / a.goal) * 100);
-         return `<div class="ach${got ? ' done' : ''}"><span class="ach-medal">${scIcon(a.icon)}</span><div><strong>${escHTML(a.title)}</strong><span>${escHTML(a.desc)}</span>${got ? '<em>EARNED</em>' : `<div class="ach-prog"><i style="width:${pct}%"></i></div><small>${n.toLocaleString()} / ${a.goal.toLocaleString()}</small>`}</div></div>`;
+         const cl = (t.claimed || {})[a.id], rt = rewardText(a.id);
+         return `<div class="ach${got ? ' done' : ''}"><span class="ach-medal">${scIcon(a.icon)}</span><div><strong>${escHTML(a.title)}</strong><span>${escHTML(a.desc)}</span>${got ? `<em>${cl ? 'EARNED · CLAIMED' : 'EARNED · REWARD READY'}</em>` : `<div class="ach-prog"><i style="width:${pct}%"></i></div><small>${n.toLocaleString()} / ${a.goal.toLocaleString()}</small>`}${rt ? `<p class="ach-rew${cl ? ' got' : ''}">Reward: ${escHTML(rt)}</p>` : ''}</div></div>`;
        }).join('')}</div>`).join('')}`,
-      () => { journalTabs(); });
+      () => {
+        journalTabs();
+        if ($('achClaim')) $('achClaim').onclick = () => { const r = claimRewards(); Sfx && Sfx.coin && Sfx.coin(); showToast(`Claimed ${r.spores.toLocaleString()} spores${r.items ? ` and ${r.items} item${r.items > 1 ? 's' : ''}` : ''}`, 3200); showAchievements(); };
+      });
   }
 
   // ---- species entries
@@ -15997,6 +16068,533 @@ const CG_DATA = (() => {
     if (chips) chips.insertBefore(btn, snd || chips.firstChild);
     btn.addEventListener('click', () => showSettings());
   })();
+
+  // ---- keep HUD chip text inside its box: shrink a long label a little so it never spills out
+  function fitChips() {
+    document.querySelectorAll('.chips .chip').forEach(chip => {
+      if (!chip.offsetWidth) return;
+      chip.style.fontSize = '';
+      const kids = [...chip.children].filter(k => k.offsetWidth); if (!kids.length) return;
+      const l = Math.min(...kids.map(k => k.getBoundingClientRect().left)), r = Math.max(...kids.map(k => k.getBoundingClientRect().right));
+      const px = chip.getBoundingClientRect().width / 116, avail = chip.getBoundingClientRect().width - px * 12, need = r - l;
+      if (need > avail && need > 0) chip.style.fontSize = `calc(var(--px) * ${Math.max(5.5, 10 * avail / need).toFixed(2)})`;
+    });
+  }
+  { const chips = document.querySelector('.chips');
+    if (chips) {
+      let q = 0; const go = () => { if (q) return; q = requestAnimationFrame(() => { q = 0; try { fitChips(); } catch (e) {} }); };
+      new MutationObserver(go).observe(chips, { subtree: true, childList: true, characterData: true });
+      window.addEventListener('resize', go); setInterval(go, 1500); go();
+    } }
+  // ======================================================================
+  // 9z. Hunger, loss and the grave.
+  //     Bugs that are never fed slowly become hungry, then starve. A bug that
+  //     dies lies on its back in black and white until you carry it to the
+  //     grave at Starfall Clearing. The others grieve for a while.
+  //     Recovering bugs are safe, and time spent away is capped so a holiday
+  //     can never wipe out a terrarium.
+  // ======================================================================
+  const H_MS = 3600000;
+  const HUNGER = { peckish: 24 * H_MS, hungry: 48 * H_MS, starving: 72 * H_MS, dead: 96 * H_MS, legendBonus: 24 * H_MS, awayCap: 30 * H_MS, autoBury: 7 * 24 * H_MS };
+  const GRIEF_MS = 6 * 60 * 1000;
+  function deathSt() {
+    if (!Array.isArray(state.dead)) state.dead = [];
+    if (!Array.isArray(state.graves)) state.graves = [];
+    state.dead = state.dead.filter(d => d && typeof d === 'object' && Number.isInteger(d.type) && d.type >= 0 && d.type < types.length && typeof d.id === 'string');
+    state.graves = state.graves.filter(g => g && typeof g === 'object' && Number.isInteger(g.type) && g.type >= 0 && g.type < types.length);
+    return state;
+  }
+  const hungerOf = b => Math.max(0, Number(b && b.hunger) || 0);
+  const hungerLimit = b => HUNGER.dead + (types[b.type] && types[b.type].legendary ? HUNGER.legendBonus : 0);
+  function hungerLevel(b) {
+    if (!b || !recovered(b)) return 0;
+    const h = hungerOf(b);
+    return h >= HUNGER.starving ? 3 : h >= HUNGER.hungry ? 2 : h >= HUNGER.peckish ? 1 : 0;
+  }
+  const HUNGER_TEXT = ['Well fed', 'Peckish', 'Hungry. Feed it soon', 'Starving! Feed it now'];
+  const livingBugs = () => (state.bugs || []).concat((state.pets || []).filter(Boolean));
+  function feedBug(b, quiet) {
+    if (!b) return false;
+    const was = hungerLevel(b);
+    b.hunger = 0; b.hungerLvl = 0;
+    if (!quiet && was >= 2) showToast(`${bugName(b)} feels much better`);
+    return true;
+  }
+  // One pinch from the day's food, shared by the terrarium, the jars and a bug's own card.
+  function takePinch() {
+    const left = feedLeft();
+    if (left <= 0) { showToast('No food left today'); return false; }
+    if (state.fed !== dateKey()) { state.fed = dateKey(); state.nursed = (state.nursed || 0) + 1; }
+    state.feedLeft = left - 1;
+    save();
+    if (state.feedLeft <= 0) feeding = false;
+    updateHUD();
+    return true;
+  }
+
+  // ---- hunger clock
+  let hungerNoted = null;
+  function hungerTick() {
+    if (!state || showcase) return;
+    deathSt();
+    const now = Date.now();
+    if (!state.hungerAt || state.hungerAt > now) state.hungerAt = now;
+    const gap = Math.min(Math.max(0, now - state.hungerAt), HUNGER.awayCap);
+    const away = now - state.hungerAt > 10 * 60 * 1000;
+    state.hungerAt = now;
+    if (!gap) return;
+    const dying = [];
+    livingBugs().forEach(b => {
+      if (!recovered(b)) { b.hunger = 0; return; }
+      b.hunger = hungerOf(b) + gap;
+      const lvl = hungerLevel(b);
+      if (lvl > (b.hungerLvl || 0)) {
+        b.hungerLvl = lvl;
+        if (lvl === 2) showToast(`${bugName(b)} is getting hungry`, 3200);
+        if (lvl === 3) showToast(`${bugName(b)} is starving! Feed it soon`, 3800);
+      }
+      if (hungerOf(b) >= hungerLimit(b)) dying.push(b);
+    });
+    dying.forEach(b => dieOf(b));
+    if (away) state.hungerAway = Date.now();
+    // bodies left alone for a week are laid to rest for you
+    const old = state.dead.filter(d => !d.carried && now - d.diedAt > HUNGER.autoBury);
+    old.forEach(d => buryBody(d, true));
+    if (!hungerTick.s || now - hungerTick.s > 60000) { hungerTick.s = now; save(); }
+  }
+  setInterval(() => { try { hungerTick(); } catch (e) { logError && logError(e.message, 'hunger'); } }, 2000);
+
+  // ---- hungry bugs say so
+  setInterval(() => {
+    try {
+      if (!state || showcase || modalOpen()) return;
+      if (scene === 'terrarium') animations.forEach(a => { const b = findVisibleBug(a.id), l = hungerLevel(b); if (l >= 2 && a.state !== 'held' && Math.random() < 0.5) bubble(a, l >= 3 ? 'sad' : 'crumb', 2.6); });
+      if (scene === 'shelf') jarActors.forEach(a => { const b = a && petById(a.id), l = hungerLevel(b); if (l >= 2 && a.state !== 'held' && Math.random() < 0.5) bubble(a, l >= 3 ? 'sad' : 'crumb', 2.6); });
+    } catch (e) { /* cosmetic */ }
+  }, 9000);
+
+  // ---- death
+  function dieOf(b) {
+    const st = deathSt();
+    const pet = st.pets.indexOf(b) >= 0;
+    let x = 320, y = 270, dx = 0, jar = null;
+    if (pet) {
+      const a = jarActors.find(o => o && o.id === b.id);
+      jar = b.jar | 0;
+      if (a) dx = clamp(a.x - JAR_X[jar], -JAR_HALF + 8, JAR_HALF - 8);
+      else dx = rand(-40, 40);
+      y = 236;
+      st.pets.splice(st.pets.indexOf(b), 1);
+      jarActors = jarActors.filter(o => o && o.id !== b.id);
+    } else {
+      const a = animations.find(o => o.id === b.id);
+      if (a) { x = clamp(a.x, 60, 580); y = groundY(a.y); } else { x = rand(120, 520); y = rand(260, 282); }
+      st.bugs.splice(st.bugs.indexOf(b), 1);
+      animations = animations.filter(o => o.id !== b.id);
+    }
+    const body = { id: b.id, type: b.type, from: pet ? 'jar' : 'tank', jar, tank: b.tank | 0, x: pet ? dx : x, y, diedAt: Date.now(), carried: false, bug: JSON.parse(JSON.stringify(b)) };
+    st.dead.push(body);
+    save();
+    updateHUD();
+    // everyone nearby feels it
+    const now = Date.now();
+    if (pet) {
+      jarActors.forEach(a => { if (a && (a.jar | 0) === jar) grieve(a, now); });
+    } else {
+      animations.forEach(a => grieve(a, now));
+    }
+    const shown = pet ? scene === 'shelf' : scene === 'terrarium';
+    if (shown) { effects.push({ kind: 'sparkle', x: pet ? JAR_X[jar] + dx : x, y: y - 14, dx: 0, dy: -12, age: 0, life: 1, color: '#c9c9d6' }); }
+    showToast(`${bugName(b)} has died of hunger. Tap it to say goodbye`, 4600);
+    Sfx && Sfx.knock && Sfx.knock(0);
+    return body;
+  }
+  function grieve(a, now) {
+    a.griefUntil = now + GRIEF_MS * (0.6 + Math.random() * 0.8);
+    a.state = 'idle'; a.timer = 0.2; a.target = null; a.then = null; a.moving = false;
+    if (a.bubbles) bubble(a, 'sad', 6);
+  }
+  const grieving = a => !!a && Date.now() < (a.griefUntil || 0);
+  { const _d = decide;
+    decide = function (a, b) {
+      if (grieving(a) && !showcase) {
+        a.hideSpot = null;
+        const spot = (a.kind !== 'flyer' && freeHide(a)) || null;
+        if (spot && Math.random() < 0.75) { a.hideSpot = spot; goTo(a, spot.x, spot.y, 'hide'); return; }
+        setState(a, Math.random() < 0.6 ? 'nap' : 'idle', rand(7, 13));
+        if (Math.random() < 0.5) bubble(a, 'sad', 3);
+        return;
+      }
+      return _d.apply(this, arguments);
+    }; }
+  { const _j = jarDecide;
+    jarDecide = function (a, b) {
+      if (grieving(a)) {
+        const th = JAR_THEMES[a.jar], cx = JAR_X[a.jar];
+        a.long = true;
+        if (Math.random() < 0.6) { jarGo(a, cx + th.hide.x, th.hide.y, 'hide'); }
+        else { a.state = 'nap'; a.timer = rand(8, 14); a.moving = false; }
+        if (Math.random() < 0.5) bubble(a, 'sad', 3);
+        return;
+      }
+      return _j.apply(this, arguments);
+    }; }
+  // a small sad thought bubble: a grey cloud with a tear
+  { const _b = drawBubble;
+    drawBubble = function (x, y, kind) {
+      if (kind !== 'sad') return _b.apply(this, arguments);
+      const w = 16, h = 14, bx = Math.round(x - w / 2), by = Math.round(y - h);
+      pxRect(bx + 1, by, w - 2, h, '#25221f'); pxRect(bx, by + 1, w, h - 2, '#25221f'); pxRect(bx + 1, by + 1, w - 2, h - 2, '#e8ecf4');
+      pxRect(bx + 4, by + h, 3, 2, '#25221f');
+      pxRect(bx + 3, by + 4, 3, 1, '#4a4f66'); pxRect(bx + 10, by + 4, 3, 1, '#4a4f66');
+      pxRect(bx + 4, by + 6, 1, 1, '#4a4f66'); pxRect(bx + 11, by + 6, 1, 1, '#4a4f66');
+      pxRect(bx + 5, by + 9, 6, 1, '#4a4f66'); pxRect(bx + 4, by + 10, 1, 1, '#4a4f66'); pxRect(bx + 11, by + 10, 1, 1, '#4a4f66');
+      pxRect(bx + 4, by + 7, 1, 2, '#7fb3f0');
+    }; }
+  // starving bugs drain of colour
+  { const _bug = drawBug;
+    drawBug = function (a, t) {
+      const b = findVisibleBug(a.id) || petById(a.id), lvl = hungerLevel(b);
+      if (lvl >= 3 && !showcase) { ctx.save(); ctx.filter = 'grayscale(0.75)'; _bug.apply(this, arguments); ctx.restore(); }
+      else _bug.apply(this, arguments);
+    }; }
+
+  // ---- eating
+  function jarFeed(p) {
+    const jar = shelfJarAt(p.x, p.y);
+    if (jar < 0) return false;
+    const pets = state.pets.filter(b => b && (b.jar | 0) === jar);
+    if (!pets.length) { showToast('Nobody lives in that jar yet'); return true; }
+    if (!takePinch()) return true;
+    const cx = JAR_X[jar];
+    for (let i = 0; i < 4; i++) effects.push({ kind: 'sparkle', x: cx + rand(-30, 30), y: 150 + rand(0, 20), dx: rand(-4, 4), dy: 40, age: 0, life: 0.9, color: '#e5b66c' });
+    pets.forEach(b => {
+      feedBug(b);
+      const a = jarActors.find(o => o && o.id === b.id);
+      if (a) { a.react = 1.2; a.hopY = 6; effects.push({ kind: 'heart', x: a.x, y: a.y - 20, age: 0, life: 1.2 }); bubble(a, 'crumb', 1.8); }
+    });
+    Sfx && Sfx.pop && Sfx.pop();
+    showToast(pets.length > 1 ? 'The jar dwellers tuck in' : `${bugName(pets[0])} tucks in`);
+    return true;
+  }
+  { const _t = tapShelf;
+    tapShelf = function (p) {
+      if (feeding && !bodyAt(p)) { jarFeed(p); return false; }
+      return _t.apply(this, arguments);
+    }; }
+
+  // ---- bodies: drawing
+  const greyCache = {};
+  function greyFrame(type) {
+    if (greyCache[type]) return greyCache[type];
+    const c = document.createElement('canvas'); c.width = 24; c.height = 24;
+    const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+    g.drawImage(bugAtlas, 0, 24 * type, 24, 24, 0, 0, 24, 24);
+    try {
+      const im = g.getImageData(0, 0, 24, 24), d = im.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const l = d[i] * 0.3 + d[i + 1] * 0.55 + d[i + 2] * 0.15, v = Math.round(clamp(l * 0.78 + 14, 0, 255));
+        d[i] = d[i + 1] = d[i + 2] = v;
+      }
+      g.putImageData(im, 0, 0);
+    } catch (e) { /* tainted canvas: keep colour */ }
+    return (greyCache[type] = c);
+  }
+  const bodySize = d => { const b = d.bug || { type: d.type, visualFx: [] }; return 24 * (types[d.type].legendary ? 2.7 : d.type === 4 || d.type === 8 ? 1.85 : d.type === 2 ? 2.2 : 2) * (hasFx(b, 'giant') ? 1.3 : hasFx(b, 'tiny') ? 0.76 : 1); };
+  function drawBodySprite(d, x, y, t, k, alpha) {
+    const sz = bodySize(d), age = Math.min(1, (Date.now() - d.diedAt) / 1400);
+    const fall = k == null ? age : k;
+    ctx.save();
+    ctx.globalAlpha = alpha == null ? 1 : alpha;
+    ctx.translate(Math.round(x), Math.round(y + sz * 0.06 * fall));
+    ctx.rotate(Math.PI * fall * (d.dir || 1));          // tips over onto its back
+    ctx.drawImage(bugAtlas, 0, 24 * d.type, 24, 24, -sz / 2, -sz / 2, sz, sz);   // colour fades out as it falls
+    ctx.globalAlpha = (alpha == null ? 1 : alpha) * Math.min(1, fall * 1.6);
+    ctx.drawImage(greyFrame(d.type), 0, 0, 24, 24, -sz / 2, -sz / 2, sz, sz);
+    ctx.restore();
+  }
+  const bodiesHere = kind => deathSt().dead.filter(d => !d.carried && d.from === kind && (kind === 'jar' ? (d.jar | 0) < jarCount() : (!vOwn('tank2') || (d.tank | 0) === (state.tankNow | 0))));
+  const bodyPos = d => d.from === 'jar' ? { x: JAR_X[d.jar | 0] + d.x, y: d.y } : { x: d.x, y: d.y };
+  function drawBodies(kind, t) {
+    bodiesHere(kind).forEach(d => {
+      const p = bodyPos(d);
+      if (kind === 'jar' && (p.x < -60 || p.x > 700)) return;
+      // a faint shadow, and a slow drifting wisp so a body is easy to spot
+      ctx.globalAlpha = 0.22; ctx.fillStyle = '#10161c'; ctx.fillRect(Math.round(p.x - 17), Math.round(p.y + 12), 34, 4); ctx.globalAlpha = 1;
+      drawBodySprite(d, p.x, p.y, t);
+      const w = (Math.sin(t * 1.4 + d.diedAt) + 1) / 2;
+      ctx.globalAlpha = 0.5 - 0.3 * w; pxRect(Math.round(p.x - 1), Math.round(p.y - 22 - w * 8), 3, 3, '#dfe6f2'); ctx.globalAlpha = 1;
+    });
+  }
+  { const _dt = drawTerrarium;
+    drawTerrarium = function (dt, t) { _dt.apply(this, arguments); if (!showcase) drawBodies('tank', t); }; }
+  { const _ds = drawShelf;
+    drawShelf = function (dt, t) { _ds.apply(this, arguments); ctx.save(); ctx.translate(0, SHELF_DY); drawBodies('jar', t); ctx.restore(); }; }
+
+  // ---- bodies: tapping one
+  function bodyAt(p) {
+    const kind = scene === 'terrarium' ? 'tank' : scene === 'shelf' ? 'jar' : null;
+    if (!kind || mapOpen || travel || showcase) return null;
+    const list = bodiesHere(kind);
+    for (let i = list.length - 1; i >= 0; i--) { const q = bodyPos(list[i]); if (Math.abs(p.x - q.x) < 26 && Math.abs(p.y - q.y) < 22) return list[i]; }
+    return null;
+  }
+  const lifeSpan = d => { const days = Math.max(1, Math.round(((d.diedAt || Date.now()) - (d.bug && d.bug.foundAt || d.diedAt)) / 86400000)); return `${days} day${days > 1 ? 's' : ''} in your care`; };
+  function showBody(d) {
+    const sp = types[d.type], nm = d.bug ? bugName(d.bug) : sp.name;
+    modal('specimen',
+      `<p class="panel-eyebrow">A SAD DAY</p><h2>${escHTML(nm)}</h2>
+       <div class="bug-panel compact"><div class="bug-portrait" id="deadPortrait"></div><div>
+         <p>${escHTML(nm)} has died of hunger. It was ${escHTML(lifeSpan(d))}.</p>
+         <p class="fine-print">Pick it up and carry it to the grave at Starfall Clearing. The others will be sad for a while.</p></div></div>
+       <div class="modal-actions"><button class="action primary" id="dbCarry">PICK IT UP</button><button class="action" id="dbLeave">LEAVE IT FOR NOW</button></div>`,
+      () => {
+        const cv = document.createElement('canvas'); cv.width = 24; cv.height = 24; cv.style.cssText = 'width:96px;height:96px;image-rendering:pixelated';
+        cv.getContext('2d').drawImage(greyFrame(d.type), 0, 0); $('deadPortrait').append(cv);
+        $('dbLeave').onclick = closeModal;
+        $('dbCarry').onclick = () => { d.carried = true; save(); closeModal(); showToast(`You are carrying ${nm}. Take it to the grave at Starfall Clearing`, 4200); Sfx && Sfx.pop && Sfx.pop(); };
+      });
+  }
+  canvas.addEventListener('pointerdown', e => {
+    if (!state || modalOpen()) return;
+    const p = canvasPoint(e), d = bodyAt(p);
+    if (!d) return;
+    e.stopImmediatePropagation(); e.preventDefault();
+    showBody(d);
+  }, true);
+
+  // ---- the grave at Starfall Clearing
+  const GRAVE = { x: 146, y: 258, hit: { x: 104, y: 226, w: 84, h: 72 }, drag: null, anim: null, tray: { x: 14, y: 286, w: 92, h: 34 } };
+  const carriedBodies = () => deathSt().dead.filter(d => d.carried);
+  const graveFlowers = ['#f0b0b8', '#f6e08a', '#b8a0e8', '#8ae0d4', '#f2f2f2', '#f4a070'];
+  function graveSlot(i) { const col = i % 5, row = Math.floor(i / 5) % 2; return { x: 114 + col * 15 + (row ? 7 : 0), y: 276 + row * 12 }; }
+  function drawGraveMarker(g, i, t) {
+    const s = graveSlot(i), h = hashStr(String(g.id || i)), fl = graveFlowers[h % graveFlowers.length], wood = h % 3 === 0;
+    ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.fillRect(s.x - 5, s.y + 1, 11, 3);
+    if (wood) { pxRect(s.x - 1, s.y - 9, 3, 10, '#7b523a'); pxRect(s.x - 4, s.y - 8, 9, 3, '#98734f'); pxRect(s.x - 4, s.y - 8, 9, 1, '#c9a06a'); }
+    else { pxRect(s.x - 4, s.y - 8, 9, 9, '#8d9298'); pxRect(s.x - 3, s.y - 10, 7, 2, '#8d9298'); pxRect(s.x - 3, s.y - 9, 5, 1, '#b4bac0'); pxRect(s.x + 2, s.y - 7, 2, 8, '#6f757b'); }
+    const sway = Math.round(Math.sin(t * 1.6 + h) * 1);
+    pxRect(s.x - 1 + sway, s.y - 13, 3, 3, fl); pxRect(s.x + sway, s.y - 12, 1, 1, '#fff2c0'); pxRect(s.x, s.y - 10, 1, 3, '#4f7a4e');
+  }
+  function drawGraveSite(t, phase) {
+    const g = GRAVE, st = deathSt();
+    // a low mound with a standing stone
+    ctx.fillStyle = 'rgba(0,0,0,.20)'; ctx.fillRect(g.x - 30, g.y + 12, 62, 6);
+    pxRect(g.x - 26, g.y + 2, 54, 12, '#4d7a4a'); pxRect(g.x - 22, g.y - 2, 46, 6, '#5f9261'); pxRect(g.x - 14, g.y - 5, 30, 4, '#6fa86a');
+    pxRect(g.x - 9, g.y - 26, 20, 28, '#7c838a'); pxRect(g.x - 11, g.y - 22, 24, 22, '#7c838a'); pxRect(g.x - 7, g.y - 28, 14, 3, '#7c838a');
+    pxRect(g.x - 7, g.y - 26, 12, 2, '#a3abb2'); pxRect(g.x + 7, g.y - 20, 4, 20, '#5d646b'); pxRect(g.x - 9, g.y - 2, 22, 2, '#5d646b');
+    pxRect(g.x - 1, g.y - 20, 3, 9, '#4a4f55'); pxRect(g.x - 4, g.y - 17, 9, 3, '#4a4f55');   // a small carved cross-like mark
+    const mk = st.graves.slice(-10);
+    mk.forEach((m, i) => drawGraveMarker(m, i, t));
+    if (phase === 'night' || phase === 'evening') {          // a little candle glow
+      const a = 0.16 + 0.05 * Math.sin(t * 5);
+      const rg = ctx.createRadialGradient(g.x + 14, g.y - 6, 1, g.x + 14, g.y - 6, 26); rg.addColorStop(0, `rgba(255,210,120,${a * 3})`); rg.addColorStop(1, 'rgba(255,210,120,0)');
+      ctx.fillStyle = rg; ctx.fillRect(g.x - 14, g.y - 34, 56, 56); pxRect(g.x + 14, g.y - 6, 3, 5, '#f4e3b0'); pxRect(g.x + 15, g.y - 8, 1, 2, '#ffd36a');
+    }
+  }
+  function drawCarryTray(t) {
+    const list = carriedBodies(); if (!list.length) return;
+    const tr = GRAVE.tray;
+    ctx.fillStyle = 'rgba(20,24,30,.62)'; ctx.fillRect(tr.x, tr.y, tr.w, tr.h); ctx.strokeStyle = '#c9c9d6'; ctx.lineWidth = 1; ctx.strokeRect(tr.x + .5, tr.y + .5, tr.w - 1, tr.h - 1);
+    ctx.font = '8px "Grove Pixel", monospace'; ctx.fillStyle = '#e8ecf4'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('CARRYING · DRAG', tr.x + 4, tr.y + 3);
+    list.slice(0, 3).forEach((d, i) => {
+      if (GRAVE.drag && GRAVE.drag.id === d.id) return;
+      ctx.save(); ctx.translate(tr.x + 18 + i * 28, tr.y + 23); ctx.rotate(Math.PI); ctx.drawImage(greyFrame(d.type), -10, -10, 20, 20); ctx.restore();
+    });
+  }
+  function drawGraveLayer(t) {
+    const phase = clearingPhaseNow();
+    drawGraveSite(t, phase);
+    drawCarryTray(t);
+    const d = GRAVE.drag;
+    if (d) { const b = carriedBodies().find(x => x.id === d.id); if (b) { ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(Math.PI); ctx.drawImage(greyFrame(b.type), -22, -22, 44, 44); ctx.restore(); } }
+    const an = GRAVE.anim;
+    if (an) {
+      const e = (performance.now() - an.t0) / 1000, d0 = an.body;
+      if (e < 1.5) { const u = e / 1.5, x = an.fx + (GRAVE.x - an.fx) * u, y = an.fy + (GRAVE.y + 2 - an.fy) * u + Math.sin(u * Math.PI) * -26; ctx.save(); ctx.translate(x, y); ctx.rotate(Math.PI); ctx.globalAlpha = 1 - Math.max(0, u - 0.7) / 0.3; ctx.drawImage(greyFrame(d0.type), -22 * (1 - u * 0.4), -22 * (1 - u * 0.4), 44 * (1 - u * 0.4), 44 * (1 - u * 0.4)); ctx.restore(); }
+      if (e > 1.2 && e < 3.2) { const u = (e - 1.2) / 2; const sl = graveSlot(Math.min(9, deathSt().graves.length)); for (let i = 0; i < 6; i++) { ctx.globalAlpha = 1 - u; pxRect(Math.round(sl.x + Math.sin(i * 2.1 + e * 2) * 8), Math.round(sl.y - 12 - u * 26 - i * 3), 3, 3, graveFlowers[i % graveFlowers.length]); } ctx.globalAlpha = 1; }
+      if (e >= 3.2) finishBurial();
+    }
+  }
+  { const _dc = drawClearing;
+    drawClearing = function (dt, t) { _dc.apply(this, arguments); drawGraveLayer(t); }; }
+  const graveHot = p => inRect(p, GRAVE.hit);
+  { const _hot = clearingHot;
+    clearingHot = function (p) { return graveHot(p) || (carriedBodies().length && inRect(p, GRAVE.tray)) || _hot.apply(this, arguments); }; }
+  { const _tc = tapClearing;
+    tapClearing = function (p) {
+      if (GRAVE.anim) return;
+      if (graveHot(p)) { openGrave(); return; }
+      return _tc.apply(this, arguments);
+    }; }
+  function buryBody(d, auto) {
+    const st = deathSt();
+    st.dead = st.dead.filter(x => x !== d);
+    st.graves.push({ id: d.id, type: d.type, name: d.bug ? bugName(d.bug) : types[d.type].name, diedAt: d.diedAt, buriedAt: Date.now(), foundAt: d.bug && d.bug.foundAt || d.diedAt, auto: !!auto });
+    if (st.graves.length > 200) st.graves.shift();
+    save();
+  }
+  function beginBurial(d, fx, fy) {
+    if (GRAVE.anim) return;
+    GRAVE.anim = { body: d, t0: performance.now(), fx, fy };
+    Sfx && Sfx.sparkle && Sfx.sparkle();
+  }
+  function finishBurial() {
+    const an = GRAVE.anim; if (!an) return;
+    GRAVE.anim = null;
+    buryBody(an.body, false);
+    const nm = an.body.bug ? bugName(an.body.bug) : types[an.body.type].name;
+    showToast(`${nm} is at rest. Thank you for looking after it`, 4200);
+    Sfx && Sfx.grow && Sfx.grow();
+    for (let i = 0; i < 8; i++) effects.push({ kind: 'heart', x: GRAVE.x + rand(-20, 20), y: GRAVE.y - 14 - rand(0, 10), age: -i * 0.12, life: 1.4 });
+    try { achCheck(false); } catch (e) { /* achievements are optional */ }
+  }
+  function openGrave() {
+    const st = deathSt(), carrying = carriedBodies(), list = st.graves.slice().reverse();
+    const date = ms => new Date(ms).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
+    modal('collection',
+      `<p class="panel-eyebrow">STARFALL CLEARING</p><h2>The Quiet Grove</h2>
+       <p>${st.graves.length ? `${plural(st.graves.length, 'bug')} laid to rest here.` : 'A quiet corner where fallen bugs are laid to rest.'}</p>
+       ${carrying.length ? `<h3>You are carrying</h3><div class="ach-list">${carrying.map(d => `<div class="ach"><span class="ach-medal"><canvas width="24" height="24" data-dead="${d.type}" style="width:100%;height:100%;image-rendering:pixelated"></canvas></span><div><strong>${escHTML(d.bug ? bugName(d.bug) : types[d.type].name)}</strong><span>${escHTML(types[d.type].name)}</span><button class="action primary" data-bury="${escHTML(d.id)}">LAY TO REST</button></div></div>`).join('')}</div>` : ''}
+       ${list.length ? `<h3>Remembered</h3><div class="ach-list">${list.map(g => `<div class="ach done"><span class="ach-medal"><canvas width="24" height="24" data-dead="${g.type}" style="width:100%;height:100%;image-rendering:pixelated"></canvas></span><div><strong>${escHTML(g.name)}</strong><span>${escHTML(types[g.type].name)} · ${escHTML(lifeSpan(g))}</span><small>${escHTML(date(g.diedAt))}${g.auto ? ' · laid to rest for you' : ''}</small></div></div>`).join('')}</div>` : '<p class="fine-print">Nobody yet. Keep your bugs fed and this place will stay empty.</p>'}
+       <div class="modal-actions"><button class="action" id="gvClose">CLOSE</button></div>`,
+      () => {
+        $('modalBody').querySelectorAll('canvas[data-dead]').forEach(cv => { const g = cv.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(greyFrame(+cv.dataset.dead), 0, 0); });
+        $('gvClose').onclick = closeModal;
+        $('modalBody').querySelectorAll('[data-bury]').forEach(btn => btn.onclick = () => {
+          const d = carriedBodies().find(x => x.id === btn.dataset.bury); if (!d) return;
+          closeModal(); beginBurial(d, GRAVE.tray.x + 20, GRAVE.tray.y + 20);
+        });
+      });
+  }
+  // dragging a carried body from the tray onto the grave
+  function trayIndexAt(p) {
+    const tr = GRAVE.tray; if (!inRect(p, tr)) return -1;
+    const i = Math.floor((p.x - tr.x - 4) / 28); const list = carriedBodies();
+    return i >= 0 && i < Math.min(3, list.length) ? i : (list.length ? 0 : -1);
+  }
+  canvas.addEventListener('pointerdown', e => {
+    if (!state || scene !== 'clearing' || modalOpen() || GRAVE.anim || mapOpen || travel) return;
+    const p = canvasPoint(e), i = carriedBodies().length ? trayIndexAt(p) : -1;
+    if (i < 0) return;
+    e.stopImmediatePropagation(); e.preventDefault();
+    const d = carriedBodies()[i];
+    GRAVE.drag = { id: d.id, x: p.x, y: p.y, moved: false, x0: p.x, y0: p.y };
+    try { canvas.setPointerCapture(e.pointerId); } catch (_) { /* optional */ }
+  }, true);
+  canvas.addEventListener('pointermove', e => {
+    const d = GRAVE.drag; if (!d) return;
+    const p = canvasPoint(e); d.x = p.x; d.y = p.y;
+    if (Math.hypot(p.x - d.x0, p.y - d.y0) > 6) d.moved = true;
+  }, true);
+  const endDrag = e => {
+    const d = GRAVE.drag; if (!d) return;
+    GRAVE.drag = null;
+    const p = canvasPoint(e), body = carriedBodies().find(x => x.id === d.id);
+    if (!body) return;
+    if (graveHot(p) && d.moved) beginBurial(body, p.x, p.y);
+    else if (!d.moved) showToast('Drag it onto the grave, or tap the grave');
+  };
+  canvas.addEventListener('pointerup', endDrag, true);
+  canvas.addEventListener('pointercancel', () => { GRAVE.drag = null; }, true);
+
+  // ---- a bug's card: the FEED IT button lives in the card itself (see f163_card.js)
+  { const _i = inspect;
+    inspect = function (bid) {
+      const r = _i.apply(this, arguments);
+      const btn = $('feedThisBtn'), b = findAnyBug(bid);
+      if (btn && b) btn.onclick = () => { if (takePinch()) { feedBug(b); Sfx && Sfx.pop && Sfx.pop(); inspect(bid); } };
+      return r;
+    }; }
+  // ---- welcome back
+  { const _a = awaySummary;
+    awaySummary = function (since) {
+      const lines = _a.apply(this, arguments);
+      try {
+        const st = deathSt();
+        const gone = st.dead.filter(d => d.diedAt > since);
+        if (gone.length) lines.push(gone.length === 1 ? `${gone[0].bug ? bugName(gone[0].bug) : types[gone[0].type].name} passed away while you were away.` : `${gone.length} bugs passed away while you were away.`);
+        const hungry = livingBugs().filter(b => hungerLevel(b) >= 2).length;
+        if (hungry) lines.push(hungry === 1 ? 'A bug is very hungry. Feed it soon.' : `${hungry} bugs are very hungry. Feed them soon.`);
+      } catch (e) { /* summary is optional */ }
+      return lines;
+    }; }
+  // ---- a way to the memorial from the Journal
+  { const _c = showCollection;
+    showCollection = function () {
+      const r = _c.apply(this, arguments);
+      try {
+        const st = deathSt(); if (!st.graves.length) return r;
+        const box = $('modalBody'); if (!box) return r;
+        const b = document.createElement('p'); b.className = 'fine-print';
+        b.innerHTML = `${plural(st.graves.length, 'bug')} laid to rest at the Quiet Grove in Starfall Clearing.`; box.append(b);
+      } catch (e) { /* optional */ }
+      return r;
+    }; }
+  // ======================================================================
+  // 9zz. A calmer specimen card: each fact appears once. Status lives on the
+  //      picture's stamp, the restoration bar only shows while a bug is still
+  //      cursed, and food, value and rarity share one tidy grid.
+  // ======================================================================
+  function groomButtonHTML(b) {
+    const left = groomLeft(b);
+    return left > 0
+      ? `<button class="action primary" id="playBtn">GROOM · ${left} LEFT</button>`
+      : '<button class="action" id="playBtn" disabled>GROOMED TODAY</button>';
+  }
+  function tankMoveHTML(b) {
+    return vOwn('tank2') ? `<button class="action" id="tankMoveBtn">TO TANK ${(b.tank | 0) ? 1 : 2}</button>` : '';
+  }
+  const FOOD_SHORT = ['Well fed', 'Peckish', 'Hungry', 'Starving'];
+  function specimenHTML(b, isPet, ready, pct, tags) {
+    const sp = types[b.type], kind = sp.kind, hatched = !!b.bredFrom;
+    const jar = jarOf(b);
+    const fxIds = uniqueFx(b.visualFx);
+    const pills = fxIds.length ? fxIds.map(id => `<span class="sc-pill">${FX_BY_ID[id].name}</span>`).join('') : '<span class="sc-pill none">None</span>';
+    const age = Math.max(0, Date.now() - b.foundAt);
+    const ago = age < HOUR_MS ? 'Just now' : age < 24 * HOUR_MS ? `${Math.floor(age / HOUR_MS)}h ago` : `${Math.floor(age / (24 * HOUR_MS))}d ago`;
+    const notes = [];
+    if (hatched) notes.push(['PARENTS', b.bredFrom.map(i => types[i].name).join(' + '), 'heart']);
+    if (jar >= 0) {
+      const fav = jarFavourite(b, kind, jar);
+      const left = Number.isFinite(b.giftAt) ? b.giftAt - Date.now() : 0;
+      notes.push(['FAVOURITE SPOT', `${fav.label.charAt(0).toUpperCase() + fav.label.slice(1)}, jar ${jar + 1}`, 'jar']);
+      notes.push(['GIFTS', giftReady(b) ? 'A gift is waiting!' : `Next in about ${Math.max(1, Math.ceil(left / HOUR_MS))}h`, 'gift']);
+    }
+    { const fn = friendNote(b); if (fn && !/^No best friend/i.test(String(fn[1]))) notes.push(fn); }
+    const reveal = ready && b.revealed;
+    const no = String(b.type + 1).padStart(3, '0');
+    const lvl = hungerLevel(b), hunger = hungerOf(b), left = feedLeft();
+    const bonus = fountainBonus(b) > 1000 ? ' · fountain -' + prettyTime(fountainBonus(b)).replace(' remaining', '') : '';
+    const restore = ready ? '' : `<div class="sc-restore"><div class="sc-restore-top"><span class="panel-eyebrow">RECOVERING · ${prettyTime(remainingRecovery(b)).replace(' remaining', ' left')}${bonus}</span><strong class="sc-pct">${pct}%</strong></div><div class="sc-bar curse"><i style="width:${pct}%"></i></div></div>`;
+    const canFeed = ready && (lvl >= 1 || hunger >= 6 * H_MS);
+    return `<div class="sc">
+      <i class="sc-corner tl"></i><i class="sc-corner tr"></i><i class="sc-corner bl"></i><i class="sc-corner br"></i>
+      <header class="sc-head"><i class="sc-orn"></i><div class="sc-title"><p class="panel-eyebrow">${isPet ? 'PET SHELF · YOUR FAVOURITE' : 'THE SANCTUARY · SPECIMEN CARD'}</p><h2>${escHTML(bugName(b))}<button class="sc-rename" id="renameBtn" type="button" title="Use a Name Tag" aria-label="Rename with a Name Tag">${scIcon('tag')}</button></h2>${b.nick ? `<p class="sc-species">${sp.name}</p>` : ''}</div><i class="sc-orn r"></i></header>
+      <div class="sc-main">
+        <aside class="sc-left">
+          <div class="sc-frame"><canvas id="scScene" width="72" height="72"></canvas><span class="sc-stamp ${ready ? 'ok' : 'curse'}">${hatched ? 'HATCHED' : ready ? 'RECOVERED' : 'CURSED'}</span></div>
+          <div class="sc-plate"><span class="sc-plate-no">No. ${no}</span><span class="sc-plate-kind">${scIcon(kind)}${kind.toUpperCase()}</span></div>
+        </aside>
+        <section class="sc-right">
+          <blockquote class="sc-desc">${sp.desc}</blockquote>
+          ${restore}
+          <div class="sc-chips">
+            <div class="metric ic">${scIcon('coin')}<span>VALUE</span><strong>${reveal ? b.value + ' spores' : '????'}</strong></div>
+            <div class="metric ic">${scIcon('tag')}<span>RARITY TAGS</span><strong>${reveal ? b.tags.length + ' revealed' : 'UNKNOWN'}</strong></div>
+            <div class="metric ic food l${lvl}">${scIcon('gift')}<span>FOOD</span><strong>${ready ? FOOD_SHORT[lvl] : 'Safe for now'}</strong></div>
+            <div class="metric ic">${scIcon('clock')}<span>${hatched ? 'HATCHED' : 'RESCUED'}</span><strong>${ago}</strong></div>
+            ${notes.map(n => `<div class="metric ic">${scIcon(n[2])}<span>${n[0]}</span><strong>${n[1]}</strong></div>`).join('')}
+          </div>
+        </section>
+      </div>
+      <div class="sc-fx"><div class="sc-fx-row"><span class="sc-lab">VISUAL EFFECTS</span>${pills}${reveal ? `<span class="sc-mult">×${effectsValueMultiplier(b.visualFx).toFixed(2)} value</span>` : ''}</div>
+      <div class="sc-fx-row"><span class="sc-lab">TRAITS</span><div class="tag-row">${tags}</div></div></div>
+      ${quirkRowHTML(b, isPet, ready)}
+      <div class="modal-actions">${ready && !b.revealed ? '<button class="action primary" id="revealBtn">✦ REVEAL TAGS</button>' : ''}${ready && b.revealed && !isPet ? '<button class="action" id="toMossleBtn">TO MOSSLE</button>' : ''}${!ready && !isPet ? groomButtonHTML(b) : ''}${!isPet ? tankMoveHTML(b) : ''}${canFeed ? `<button class="action${lvl >= 2 ? ' primary' : ''}" id="feedThisBtn"${left <= 0 ? ' disabled' : ''}>${left <= 0 ? 'NO FOOD LEFT' : 'FEED IT'}</button>` : ''}<button class="action" id="treatBtn">TREAT</button>${isPet ? '<button class="action" id="toTankBtn">TO TERRARIUM</button>' : ready && state.pets.some((p, i) => !p && !cocoonInJar(i)) ? '<button class="action" id="toJarBtn">TO A JAR</button>' : ''}<button class="action" id="watchBtn">${isPet ? 'BACK' : 'WATCH'}</button></div>
+    </div>`;
+  }
   // ---- the frame loop and taps for Starfall Clearing
   function drawClearing(dt, t) {
     const phase = clearingPhaseNow();

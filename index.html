@@ -2476,7 +2476,7 @@ const CG_DATA = (() => {
   // ======================================================================
   // 1. Configuration & helpers
   // ======================================================================
-  const BUILD = '1.7.9';
+  const BUILD = '1.7.10';
   const W = 640,
     H = 360; // internal canvas resolution; the stage scales it to fit
   const MAX = 8; // terrarium capacity
@@ -6770,7 +6770,7 @@ const CG_DATA = (() => {
     rare: { nectar: 1, truffle: 1, gilded: 1, sparkle: 1, lure: 1, 'heat-hearthcap': 1, 'seed-tallcap': 1, 'seed-mooncap': 1, 'decor-runestone': 1, 'decor-fountain': 1, 'decor-grandlog': 1, 'decor-rootarch': 1, 'decor-crystalgarden': 1 },
   };
   const MID_CHANCE = 0.55, RARE_CHANCE = 0.2, DEAL_OFF = 0.25;
-  const SHOP_ALWAYS = new Set(['honeydew', 'seed-moss', 'seed-clover', 'decor-pebble', 'decor-twig', 'toy-silkball']);
+  const SHOP_ALWAYS = new Set(['oil', 'honeydew', 'seed-moss', 'seed-clover', 'decor-pebble', 'decor-twig', 'toy-silkball']);
   const SHOP_CHANCE_OVERRIDE = { nectar: 0.2, lure: 0.25 };
   function shopChance(id) {
     if (SHOP_CHANCE_OVERRIDE[id] != null) return SHOP_CHANCE_OVERRIDE[id];
@@ -15714,8 +15714,8 @@ const CG_DATA = (() => {
   // ---- what's new
   // newest first; players who skipped an update see everything they missed (up to three versions)
   const CHANGELOG = [
-    { v: '1.7.9', notes: [
-      'Lantern Oil (puts one rock back) is always on Oakley\'s shelf now and no longer runs out for the day. The Picnic Basket (three rocks) is the one that comes and goes.',
+    { v: '1.7.10', notes: [
+      'Lantern Oil (puts one rock back) is now really always on Oakley\'s shelf, in the SEARCH tab, with seven a day. The Picnic Basket (three rocks) is the one that comes and goes.',
     ] },
     { v: '1.7.8', notes: [
       'The sky forecast now always has at least 3 things each week. New festivals and gatherings fill the quiet nights: Lantern Festival, Firefly Gathering, Star Festival, Moth Ball, Wisp Parade, Hilltop Bonfires, Kite Day and Balloon Regatta.',

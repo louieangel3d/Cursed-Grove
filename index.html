@@ -15582,6 +15582,7 @@ const CG_DATA = (() => {
   // newest first; players who skipped an update see everything they missed (up to three versions)
   const CHANGELOG = [
     { v: '1.6.8', notes: [
+      'Removed the Cursed / Recovered banner from the bug picture so it no longer covers the bug.',
       'The number and type plate under a bug\'s picture now always fits inside its box.',
     ] },
     { v: '1.6.7', notes: [
@@ -16581,7 +16582,7 @@ const CG_DATA = (() => {
       <header class="sc-head"><i class="sc-orn"></i><div class="sc-title"><p class="panel-eyebrow">${isPet ? 'PET SHELF · YOUR FAVOURITE' : 'THE SANCTUARY · SPECIMEN CARD'}</p><h2>${escHTML(bugName(b))}<button class="sc-rename" id="renameBtn" type="button" title="Use a Name Tag" aria-label="Rename with a Name Tag">${scIcon('tag')}</button></h2>${b.nick ? `<p class="sc-species">${sp.name}</p>` : ''}</div><i class="sc-orn r"></i></header>
       <div class="sc-main">
         <aside class="sc-left">
-          <div class="sc-frame"><canvas id="scScene" width="72" height="72"></canvas><span class="sc-stamp ${ready ? 'ok' : 'curse'}">${hatched ? 'HATCHED' : ready ? 'RECOVERED' : 'CURSED'}</span></div>
+          <div class="sc-frame"><canvas id="scScene" width="72" height="72"></canvas></div>
           <div class="sc-plate"><span class="sc-plate-no">No. ${no}</span><span class="sc-plate-kind">${scIcon(kind)}${kind.toUpperCase()}</span></div>
         </aside>
         <section class="sc-right">

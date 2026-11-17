@@ -2376,7 +2376,7 @@ const CG_DATA = (() => {
   // ======================================================================
   // 1. Configuration & helpers
   // ======================================================================
-  const BUILD = '1.6.8';
+  const BUILD = '1.6.9';
   const W = 640,
     H = 360; // internal canvas resolution; the stage scales it to fit
   const MAX = 8; // terrarium capacity
@@ -9033,7 +9033,7 @@ const CG_DATA = (() => {
     const levelIdx = { sfx: 0, weather: 0, music: 0 };
     try { Object.assign(levelIdx, JSON.parse(localStorage.getItem(LKEY) || '{}')); } catch (e) {}
     Object.keys(levelIdx).forEach(k => { if (!(levelIdx[k] >= 0 && levelIdx[k] <= 3)) levelIdx[k] = 0; });
-    let ac = null, master, sfxBus, ambBus, musicBus, rainBed = null, windBed = null, bugSource = null;
+    let ac = null, master, sfxBus, ambBus, musicBus, rainBed = null, windBed = null, bugSource = null, hushAmt = 0;
     let sceneName = 'terrarium', events = 0;
     const nextAt = {};
     const lastShot = {};
@@ -9203,12 +9203,12 @@ const CG_DATA = (() => {
     }
 
     // ---- live engine
-    function applyLevels() {
+    function applyLevels(tc = 0.05) {
       if (!ac) return;
       const t = ac.currentTime;
       sfxBus.gain.setTargetAtTime(STEPS[levelIdx.sfx], t, 0.05);
-      ambBus.gain.setTargetAtTime(STEPS[levelIdx.weather], t, 0.05);
-      musicBus.gain.setTargetAtTime(STEPS[levelIdx.music], t, 0.05);
+      ambBus.gain.setTargetAtTime(STEPS[levelIdx.weather] * (1 - 0.9 * hushAmt), t, tc);
+      musicBus.gain.setTargetAtTime(STEPS[levelIdx.music] * (1 - 0.7 * hushAmt), t, tc);
     }
     function ensure() {
       if (ac) return true;
@@ -9258,10 +9258,10 @@ const CG_DATA = (() => {
     }
     function schedule(now) {
       const night = typeof isNightTerr === 'function' && isNightTerr(),
-        terr = sceneName === 'terrarium', shelf = sceneName === 'shelf', woods = sceneName === 'woods', shop = sceneName === 'shop' || sceneName === 'merchant';
+        terr = sceneName === 'terrarium', shelf = sceneName === 'shelf', woods = sceneName === 'woods', clr = sceneName === 'clearing', shop = sceneName === 'shop' || sceneName === 'merchant';
       const wx = bedTargets();
-      if (night && (terr || shelf || woods) && wx.rainAmt < 0.5) {
-        const lvl = terr ? 1 : shelf ? 0.55 : 1.2;
+      if (night && (terr || shelf || woods || clr) && wx.rainAmt < 0.5 && hushAmt < 0.4) {
+        const lvl = terr ? 1 : shelf ? 0.55 : clr ? 0.9 : 1.2;
         run('cricket', now, () => rnd(0.2, 1.2), () => rnd(0.5, 1.4), t => V.cricket(ac, ambBus, t, { gain: 0.012 * lvl, pan: rnd(-0.8, 0.8) }));
       }
       if (!night && (terr || woods) && wx.rainAmt < 0.35) {
@@ -9368,7 +9368,8 @@ const CG_DATA = (() => {
     return {
       get muted() { return muted; },
       unlock, setMuted, toggle: () => setMuted(!muted), syncBtn,
-      scene(n) { sceneName = n; Object.keys(nextAt).forEach(k => (nextAt[k] = 0)); },
+      hush(v) { hushAmt = Math.max(0, Math.min(1, v)); applyLevels(0.4); },
+      scene(n) { sceneName = n; if (hushAmt) { hushAmt = 0; applyLevels(0.3); } Object.keys(nextAt).forEach(k => (nextAt[k] = 0)); },
       setBugSource: fn => (bugSource = fn),
       bugChirp: (kind, x) => shot('chirp', { kind, pan: x == null ? 0 : ((x - 320) / 320) * 0.7 }, 700),
       coin: () => shot('coin', null, 120),
@@ -10649,10 +10650,11 @@ const CG_DATA = (() => {
     const fn = phase === 'night' ? 30 : phase === 'evening' ? 10 : 0;
     while (CLR.flies.length < fn) CLR.flies.push({ x: rand(30, 610), y: rand(160, 330), ph: rand(0, 6.28), sp: rand(0.4, 1), a: rand(0, 6.28) });
     if (CLR.flies.length > fn) CLR.flies.length = fn;
+    const calm = typeof watcherCalm === 'function' ? watcherCalm() : 0, dtf = dt * (1 - calm);
     for (const f of CLR.flies) {
-      f.a += dt * f.sp * (0.8 + Math.sin(t * 0.3 + f.ph) * 0.5); f.x += Math.cos(f.a) * 12 * dt; f.y += Math.sin(f.a * 0.8) * 9 * dt;
+      f.a += dtf * f.sp * (0.8 + Math.sin(t * 0.3 + f.ph) * 0.5); f.x += Math.cos(f.a) * 12 * dtf; f.y += Math.sin(f.a * 0.8) * 9 * dtf;
       if (f.x < 10) f.x = 630; if (f.x > 630) f.x = 10; f.y = clamp(f.y, 130, 340);
-      const on = Math.max(0, Math.sin(t * 2.2 * f.sp + f.ph * 3));
+      const on = Math.max(0, Math.sin(t * 2.2 * f.sp + f.ph * 3)) * (1 - 0.75 * calm);
       if (on < 0.05) continue;
       const rg = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, 11);
       rg.addColorStop(0, `rgba(220,255,140,${0.5 * on})`); rg.addColorStop(1, 'rgba(220,255,140,0)');
@@ -15581,6 +15583,11 @@ const CG_DATA = (() => {
   // ---- what's new
   // newest first; players who skipped an update see everything they missed (up to three versions)
   const CHANGELOG = [
+    { v: '1.6.9', notes: [
+      'Something rarely stands at the end of the path in Starfall Clearing at night. The crickets stop and the fireflies freeze while it is there. Tap it to send it away, or lay a bug to rest while it watches.',
+      'Three new achievements for the night visitor, and the Journal keeps count of its visits.',
+      'Crickets now sing in Starfall Clearing at night.',
+    ] },
     { v: '1.6.8', notes: [
       'Removed the Cursed / Recovered banner from the bug picture so it no longer covers the bug.',
       'The number and type plate under a bug\'s picture now always fits inside its box.',
@@ -15948,6 +15955,9 @@ const CG_DATA = (() => {
       ['mail10', 'tag', 'Postbox Regular', 'Read 10 letters.', 10, lettersRead],
       ['lost1', 'clock', 'Finders Keepers', 'Hand in lost property at Starfall Clearing.', 1, () => stats().lost],
       ['lost5', 'clock', 'Lost & Found Hero', 'Hand in 5 pieces of lost property.', 5, () => stats().lost],
+      ['watch1', 'heart', 'Eyes in the Dark', 'Something watches from the trees at night...', 1, () => (state.watcher && state.watcher.seen) || 0],
+      ['watch3', 'heart', 'Familiar Stranger', 'It has come back more than once.', 3, () => (state.watcher && state.watcher.seen) || 0],
+      ['watchGift', 'gift', 'A Strange Kindness', 'Some visitors pay their respects.', 1, () => (state.watcher && state.watcher.gifts) || 0],
     ]],
     ['TIME IN THE GROVE', [
       ['days3', 'clock', 'Regular Visitor', 'Visit on 3 different days.', 3, () => stats().days],
@@ -15970,6 +15980,7 @@ const CG_DATA = (() => {
     rehome1: [100], rehome10: [300, ['ribbon']], rehome50: [1000, ['ribbon', 'ribbon']],
     spores500: [150], spores5000: [800], mail1: [80], mail10: [300, ['ticket']],
     lost1: [150], lost5: [500, ['oil']],
+    watch1: [100], watch3: [250], watchGift: [300, ['peek']],
     days3: [100], days7: [250, ['honeydew']], days30: [1000, ['jelly']],
   };
   function rewardText(id) {
@@ -16622,6 +16633,314 @@ function fitPlate() {
 { let q = 0; new MutationObserver(() => { if (q) return; q = requestAnimationFrame(() => { q = 0; try { fitPlate(); } catch (e) {} }); })
     .observe(document.body, { subtree: true, childList: true });
   window.addEventListener('resize', () => { try { fitPlate(); } catch (e) {} }); }
+  // ======================================================================
+  // 9y. The Watcher.
+  //     Rarely, at night, a tall still figure stands at the end of the path in
+  //     Starfall Clearing. The crickets stop and the fireflies freeze. If there
+  //     are graves, he drifts toward them and lingers. Lay a bug to rest while
+  //     he is near and he bows his head and leaves a small gift on the grave.
+  // ======================================================================
+  const WATCH = { on: false, t0: 0, phase: 'in', x: 318, y: 146, alpha: 0, ph0: 0, pending: false, giftAt: 0, gift: null, rollT: 0, counted: false, lastDraw: 0, hushSent: 0, bow: 0, tPhase: 0 };
+  const WP0 = { x: 332, y: 176 }, WP1 = { x: 216, y: 270 }, W_TREE = 332;   // he starts half hidden behind a trunk, then walks to the grave
+  function watcherSt() {
+    const s = deathSt();
+    if (!s.watcher || typeof s.watcher !== 'object') s.watcher = { seen: 0, gifts: 0, last: 0 };
+    ['seen', 'gifts', 'last'].forEach(k => { if (!Number.isFinite(s.watcher[k])) s.watcher[k] = 0; });
+    return s.watcher;
+  }
+  const watcherCalm = () => (WATCH.on ? WATCH.alpha : 0);
+  function watcherSpawn() {
+    if (WATCH.on) return false;
+    Object.assign(WATCH, { on: true, t0: performance.now(), phase: 'in', tPhase: performance.now(), x: WP0.x, y: WP0.y, alpha: 0, prog: 0, pending: false, gift: null, counted: false, bow: 0 });
+    watcherSt().last = Date.now();
+    return true;
+  }
+  function watcherPhase(p) { WATCH.phase = p; WATCH.tPhase = performance.now(); }
+  function watcherEnd() {
+    WATCH.on = false; WATCH.alpha = 0;
+    try { Sfx && Sfx.hush && Sfx.hush(0); WATCH.hushSent = 0; } catch (e) { /* sound is optional */ }
+  }
+  // the figure, drawn once on a small pixel grid then scaled with hard edges
+  const WSW = 48, WSH = 120;
+  let watcherArt = null;
+  function watcherSprite() {
+    if (watcherArt) return watcherArt;
+    const W = WSW, H = WSH;
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const g = c.getContext('2d');
+    const hh = (x, y, k = 0) => { let n = (x * 73856093) ^ (y * 19349663) ^ (k * 83492791); n = Math.imul(n ^ (n >>> 13), 1274126177); n = (n ^ (n >>> 16)) >>> 0; return (n % 1000) / 1000; };
+    const M = Array.from({ length: H }, () => new Array(W).fill(null));
+    const put = (x, y, t) => { if (x >= 0 && x < W && y >= 0 && y < H) M[y][x] = t; };
+    const span = (y, x0, x1, t) => { for (let x = x0; x <= x1; x++) put(x, y, t); };
+    const has = (x, y) => x >= 0 && x < W && y >= 0 && y < H && M[y][x];
+    const px = (x, y, col) => { g.fillStyle = col; g.fillRect(x, y, 1, 1); };
+    const rc = (x, y, w, h2, col) => { g.fillStyle = col; g.fillRect(x, y, w, h2); };
+    const mix = (a, b, f) => { const pa = [1, 3, 5].map(k => parseInt(a.substr(k, 2), 16)), pb = [1, 3, 5].map(k => parseInt(b.substr(k, 2), 16)); return '#' + pa.map((v, k) => Math.round(v + (pb[k] - v) * f).toString(16).padStart(2, '0')).join(''); };
+    // ---------- silhouette ----------
+    // hat: a tall crown with a dent in the top and a wide, drooping brim
+    for (let y = 0; y <= 17; y++) span(y, y === 0 ? 19 : y === 1 ? 18 : y < 14 ? 17 : 16, y === 0 ? 27 : y === 1 ? 28 : y < 14 ? 29 : 30, 'hat');
+    for (let x = 22; x <= 24; x++) M[0][x] = null;
+    span(18, 6, 42, 'hat'); span(19, 2, 45, 'hat'); span(20, 0, 46, 'hat'); span(21, 0, 43, 'hat'); span(22, 0, 4, 'hat'); span(22, 9, 37, 'hat'); span(23, 0, 2, 'hat');
+    // face and the high torn collar around it
+    for (let y = 23; y <= 29; y++) span(y, 19, 27, 'face');
+    for (let y = 30; y <= 34; y++) span(y, 20, 26, 'face'); span(35, 21, 25, 'face'); span(36, 22, 24, 'face');
+    for (let y = 30; y <= 41; y++) { const t1 = 30 + Math.floor(hh(1, y) * 3); if (y >= t1) { span(y, 14, 18, 'collar'); span(y, 28, 32, 'collar'); } }
+    for (let y = 34; y <= 41; y++) span(y, 19, 27, 'coat');
+    // shoulders and a long narrow coat that reaches the ground
+    span(40, 13, 33, 'coat'); span(41, 11, 35, 'coat'); for (let y = 42; y <= 44; y++) span(y, 9, 37, 'coat');
+    for (let y = 45; y <= 52; y++) span(y, 12, 34, 'coat'); for (let y = 53; y <= 59; y++) span(y, 14, 32, 'coat');
+    for (let y = 60; y <= 89; y++) span(y, 13, 33, 'coat'); for (let y = 90; y <= 119; y++) span(y, 11, 35, 'coat');
+    for (let x = 11; x <= 35; x++) { const bot = hh(x, 0) < 0.55 ? 119 : 108 + Math.floor(hh(x, 1) * 11); for (let y = bot + 1; y < H; y++) M[y][x] = null; }
+    // arms: very long and thin, hanging clear of the coat
+    for (let y = 40; y <= 62; y++) { span(y, 7, 10, 'arm'); span(y, 36, 39, 'arm'); }
+    for (let y = 63; y <= 92; y++) span(y, 6, 9, 'arm');
+    for (let y = 63; y <= 85; y++) span(y, 37, 40, 'arm');
+    span(90, 5, 10, 'arm'); span(91, 5, 10, 'arm'); span(92, 5, 10, 'arm');                 // ragged cuff
+    // bony hands
+    span(93, 6, 8, 'hand'); span(94, 6, 8, 'hand'); for (let y = 95; y <= 99; y++) span(y, 5, 9, 'hand'); span(100, 5, 9, 'hand');
+    [[5, 10], [7, 13], [9, 9]].forEach(([fx, len], k) => { for (let y = 100; y < 100 + len; y++) put(fx + (y > 100 + len - 3 ? (k === 0 ? -1 : k === 2 ? 1 : 0) : 0), y, 'hand'); });
+    for (let y = 96; y <= 101; y++) put(4, y, 'hand'); put(3, 102, 'hand'); put(3, 103, 'hand');
+    for (let y = 86; y <= 92; y++) span(y, 39, 43, 'hand'); span(93, 40, 44, 'hand'); span(88, 44, 45, 'hand'); span(90, 44, 45, 'hand');
+    // a gnarled staff with a forked top
+    for (let y = 6; y <= 119; y++) { const wob = Math.round(Math.sin(y * 0.19) * 0.9); put(41 + wob, y, 'staff'); put(42 + wob, y, 'staff'); }
+    for (let y = 1; y <= 8; y++) { put(40 - (8 - y) * 0 + (y < 5 ? -1 : 0), y, 'staff'); put(44 + (y < 5 ? 1 : 0), y, 'staff'); }
+    put(40, 9, 'staff'); put(43, 9, 'staff'); put(39, 117, 'staff'); put(40, 118, 'staff'); put(44, 118, 'staff'); put(45, 119, 'staff'); put(38, 119, 'staff');
+    // a torn scarf trailing down from the collar
+    for (let y = 38; y <= 78; y++) { const f = y > 66 ? Math.floor((y - 66) / 4) : 0; span(y, 29, 31 - Math.min(2, f), 'scarf'); }
+    for (let y = 40; y <= 60; y++) span(y, 26, 27, 'scarf');
+    // dangling charms
+    for (let y = 14; y <= 20; y++) put(39, y, 'thread'); for (let y = 21; y <= 25; y++) { put(38, y, 'bone'); put(39, y, 'bone'); put(40, y, y < 24 ? 'bone' : null); }
+    for (let y = 11; y <= 16; y++) put(45, y, 'thread'); for (let y = 17; y <= 29; y++) { put(45, y, 'feather'); if (y > 19 && y < 27) put(46, y, 'feather'); if (y > 21 && y < 25) put(44, y, 'feather'); }
+    for (let y = 12; y <= 24; y++) put(37, y, 'ribbon');
+    // ---------- shading ----------
+    const col = {
+      B1: '#060814', B2: '#0b0f20', B3: '#141b3c', dk: '#02030a', rim: '#4358a8', rimHi: '#7f93d6', moss: '#1f4a3c',
+    };
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const tp = M[y][x]; if (!tp) continue;
+      const eR = !has(x + 1, y), eL = !has(x - 1, y), eU = !has(x, y - 1), eD = !has(x, y + 1), n = hh(x, y, 5);
+      let cl;
+      if (tp === 'coat' || tp === 'arm') {
+        const fold = Math.sin(x * 1.1 + Math.sin(y * 0.07) * 2.2);
+        cl = fold > 0.72 ? '#0d1226' : fold < -0.75 ? '#03040b' : col.B1;
+        if (n < 0.07) cl = '#0e1429'; else if (n > 0.95) cl = '#03040b';
+        if (y > 94 && tp === 'coat') cl = mix(cl, '#16224a', Math.min(0.75, (y - 94) / 32) * (0.5 + n * 0.5));    // cold mist clings to the hem
+        if (eR) cl = col.rim; else if (!has(x + 2, y) && tp === 'coat') cl = col.B3;
+        if (eL) cl = n < 0.35 ? '#17302f' : '#080b18';
+        if (tp === 'arm' && eU && y < 44) cl = '#16204a';
+      } else if (tp === 'hat') {
+        cl = y <= 13 ? '#0b0e20' : '#090c1b';
+        if (y <= 13 && x >= 26) cl = '#10163a';
+        if (n < 0.06) cl = '#04050d';
+        if (eU) cl = (x > 26 ? '#4358a8' : '#2a3a78');
+        else if (eR) cl = '#4358a8';
+        else if (eL) cl = '#0d1430';
+        if (y >= 18 && y <= 20 && eD) cl = '#05060e';
+      } else if (tp === 'face') {
+        const lit = Math.min(1, Math.max(0, (y - 23) / 8)), side = x >= 25 ? 1.15 : x <= 20 ? 0.7 : 1;
+        cl = mix('#07091a', mix('#6f7c9a', '#b9c4d8', side > 1 ? 0.8 : side < 1 ? 0 : 0.35), lit * lit);
+        if (y >= 30 && ((x >= 20 && x <= 21) || (x >= 25 && x <= 26)) && y <= 33) cl = mix(cl, '#0a0d20', 0.65);   // hollow cheeks
+      } else if (tp === 'collar') {
+        cl = n < 0.2 ? '#0b0f20' : '#060814'; if (eR) cl = '#3a4c94'; if (eU) cl = '#2a3a78'; if (eL) cl = '#0d1430';
+      } else if (tp === 'hand') {
+        cl = n < 0.3 ? '#5f6b8a' : '#8591ad'; if (eR) cl = '#c2cce2'; if (eL) cl = '#3a4562'; if (y > 104) cl = mix(cl, '#364060', (y - 104) / 14);
+      } else if (tp === 'staff') {
+        cl = n < 0.3 ? '#171421' : '#100e18'; if (eR) cl = '#3a4274'; else if (eL) cl = '#07070d'; if (hh(x, y, 9) < 0.08) cl = '#1d3a34';
+      } else if (tp === 'scarf') {
+        cl = (y % 6 === 0) ? '#2a1f48' : '#1d1535'; if (x === 29) cl = '#150f28'; if (eR) cl = '#4a3c88'; if (y > 70 && hh(x, y, 3) < 0.35) cl = '#120c20';
+      } else if (tp === 'thread') cl = '#2a2e48';
+      else if (tp === 'bone') cl = y < 23 ? '#d8dce8' : '#9ea6bc';
+      else if (tp === 'feather') cl = (y % 3 === 0) ? '#2c3a78' : '#0b0d1e';
+      else if (tp === 'ribbon') cl = y % 4 < 2 ? '#3d2c6a' : '#2a1f48';
+      px(x, y, cl);
+    }
+    // ---------- hand-placed details ----------
+    // hat band, buckle and crease
+    rc(16, 14, 15, 3, '#2a1f48'); rc(16, 14, 15, 1, '#3f3070'); rc(21, 14, 5, 3, '#aeb6cc'); rc(22, 15, 3, 1, '#0a0c1c'); px(21, 14, '#e4e9f5');
+    for (let y = 2; y <= 12; y++) px(23, y, '#050615');
+    for (let y = 3; y <= 11; y += 2) px(18, y, '#0f1432');
+    // moss and tiny fungi growing on the hat, shoulders and hem
+    [[8, 18], [9, 18], [10, 18], [6, 19], [7, 19], [11, 19], [13, 18], [12, 41], [13, 41], [14, 40], [12, 42], [11, 42], [16, 40], [17, 41]].forEach(([mx, my]) => { if (has(mx, my)) px(mx, my, hh(mx, my, 2) < 0.5 ? '#1f4a3c' : '#2e6a54'); });
+    [[13, 118], [14, 118], [14, 117], [29, 119], [30, 119], [30, 118], [22, 119], [18, 119]].forEach(([fx, fy]) => { if (has(fx, fy)) px(fx, fy, hh(fx, fy, 4) < 0.5 ? '#7fe8d0' : '#46b8a4'); });
+    // face: a hollow, stitched mask. Only the eyes shine.
+    rc(20, 27, 3, 2, '#010207'); rc(24, 27, 3, 2, '#010207'); px(21, 28, '#f4f8ff'); px(25, 28, '#f4f8ff'); px(21, 27, '#9ec4ff'); px(25, 27, '#9ec4ff');
+    px(23, 30, '#10142a'); px(23, 31, '#10142a'); px(22, 32, '#0c1022');
+    rc(21, 34, 5, 1, '#1a1f38'); [21, 23, 25].forEach(sx => { px(sx, 33, '#1a1f38'); px(sx, 35, '#1a1f38'); });
+    px(25, 29, '#d4dcec'); px(26, 30, '#d4dcec'); px(26, 31, '#c4cde0');
+    // buttons, seam and lapels
+    for (let y = 46; y <= 112; y++) { if (has(23, y)) px(23, y, y % 9 === 0 ? '#1a2046' : '#02030a'); }
+    [50, 58, 66, 74, 82, 90, 98].forEach(by => { [21, 25].forEach(bx => { if (has(bx, by)) { px(bx, by, '#7b819c'); px(bx, by - 1, '#aeb4cc'); px(bx + 1, by, '#3a3f5c'); } }); });
+    for (let k = 0; k <= 12; k++) { if (has(14 + k, 42 + k)) px(14 + k, 42 + k, '#161d3e'); if (has(32 - k, 42 + k)) px(32 - k, 42 + k, '#161d3e'); }
+    // patches with stitching, wear lines and moth holes
+    [[26, 66, 5, 5], [15, 86, 4, 6], [28, 96, 5, 4]].forEach(([qx, qy, qw, qh]) => { rc(qx, qy, qw, qh, '#0e1430'); for (let k = 0; k < qw; k += 2) { px(qx + k, qy, '#34407a'); px(qx + k, qy + qh - 1, '#34407a'); } for (let k = 0; k < qh; k += 2) { px(qx, qy + k, '#34407a'); px(qx + qw - 1, qy + k, '#34407a'); } });
+    [[18, 94], [19, 94], [18, 95], [30, 79], [31, 79], [17, 70], [29, 52]].forEach(([hx, hy]) => { if (has(hx, hy)) px(hx, hy, '#1b2a64'); });
+    for (let x = 12; x <= 34; x += 2) { if (has(x, 72)) px(x, 72, '#141b3a'); if (has(x + 1, 104)) px(x + 1, 104, '#141b3a'); }
+    // frayed threads hanging from the sleeves and brim
+    [[6, 93], [8, 93], [37, 86], [40, 86], [4, 20], [1, 23], [2, 24]].forEach(([tx, ty]) => { for (let k = 0; k < 4; k++) if (!has(tx, ty + k)) px(tx, ty + k, '#1e2444'); });
+    // fingers of the right hand wrap the staff
+    [[40, 87], [40, 89], [40, 91], [44, 89]].forEach(([fx, fy]) => px(fx, fy, '#c2cce2'));
+    watcherArt = c; return c;
+  }
+  const watcherScale = () => 0.56 + 0.6 * (WATCH.prog || 0);
+  function watcherBox() {
+    const s = watcherScale(), w = WSW * s, h = WSH * s;
+    return { x: WATCH.x - w / 2 - 4, y: WATCH.y - h - 2, w: w + 8, h: h + 4 };
+  }
+  function watcherDrawFrame(dt, t) {
+    const now = performance.now();
+    if (WATCH.on && now - WATCH.lastDraw > 2500) watcherEnd();    // you left and came back: he is gone
+    WATCH.lastDraw = now;
+    const phase = clearingPhaseNow();
+    if (!WATCH.on) {
+      WATCH.rollT += dt;
+      if (WATCH.rollT >= 1) {
+        WATCH.rollT = 0;
+        const w = watcherSt();
+        if (phase === 'night' && !modalOpen() && !mapOpen && !GRAVE.anim && Date.now() - w.last > 12 * 60 * 1000 && Math.random() < 1 / 420) watcherSpawn();
+      }
+      return;
+    }
+    if (phase !== 'night') { if (WATCH.phase !== 'out') watcherPhase('out'); }
+    const el = (now - WATCH.tPhase) / 1000, W = WATCH, graves = deathSt().graves.length;
+    const FADE = 3;
+    if (W.phase === 'in') { W.alpha = Math.min(1, el / FADE); if (el >= FADE) watcherPhase('stand'); }
+    else if (W.phase === 'stand') {
+      W.alpha = 1;
+      // with no graves he only ever stands at the tree; he comes to grieve once there is a grave
+      if (el >= 6 + (graves ? 0 : 3)) watcherPhase(graves ? 'walk' : 'out');
+    }
+    else if (W.phase === 'walk') {
+      const u = Math.min(1, el / 14), e = u * u * (3 - 2 * u);
+      W.x = WP0.x + (WP1.x - WP0.x) * e; W.y = WP0.y + (WP1.y - WP0.y) * e; W.prog = e; W.alpha = 1;
+      if (u >= 1) watcherPhase(W.pending ? 'bow' : 'linger');
+    }
+    else if (W.phase === 'linger') {
+      W.alpha = 1;
+      if (W.pending || (GRAVE.anim && el > 1)) { if (W.pending) { watcherPhase('bow'); } }
+      else if (el >= 18 + (GRAVE.anim || carriedBodies().length ? 20 : 0)) watcherPhase('out');
+    }
+    else if (W.phase === 'bow') {
+      W.alpha = 1; W.bow = Math.min(1, el / 0.9) * (el > 2.2 ? Math.max(0, 1 - (el - 2.2) / 0.8) : 1);
+      if (el > 1.5 && W.pending) { W.pending = false; watcherLeaveGift(); }
+      if (el >= 3.2) { W.bow = 0; watcherPhase('after'); }
+    }
+    else if (W.phase === 'after') { W.alpha = 1; if (el >= 4) watcherPhase('out'); }
+    else if (W.phase === 'out') {
+      W.alpha = Math.max(0, W.alpha - dt / (W.quick ? 0.5 : 3)); if (W.alpha <= 0) { watcherEnd(); return; }
+    }
+    // first real sighting
+    if (!W.counted && W.alpha > 0.35) {
+      W.counted = true; const w = watcherSt(); w.seen++; save();
+      try { achCheck(false); } catch (e) { /* achievements are optional */ }
+    }
+    // the world goes quiet while he is here
+    if (Math.abs(W.alpha - W.hushSent) > 0.04) { W.hushSent = W.alpha; try { Sfx && Sfx.hush && Sfx.hush(W.alpha); } catch (e) { /* optional */ } }
+    // draw: a slow cold mist at his feet, then the figure. Far away he is faint and half behind the tree.
+    const s = watcherScale(), spr = watcherSprite(), w = WSW * s, h = WSH * s;
+    const vis = W.alpha * (0.5 + 0.5 * W.prog), flick = Math.sin(t * 23) > 0.985 ? 0.4 : 1;
+    ctx.save();
+    ctx.imageSmoothingEnabled = s < 0.95;
+    ctx.beginPath(); ctx.rect(0, 0, W_TREE, 360); ctx.clip();
+    if (W.x - w / 2 > W_TREE) ctx.restore(), ctx.save(), ctx.imageSmoothingEnabled = s < 0.95;   // nothing hides him once he is clear of the trunk
+    ctx.globalAlpha = 0.38 * vis;                               // the shadow he casts on the ground
+    ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(W.x, W.y, w * 0.34, 2.2 * s, 0, 0, 7); ctx.fill();
+    ctx.globalAlpha = 0.17 * vis;
+    const mg = ctx.createRadialGradient(W.x, W.y, 1, W.x, W.y, 26 * s); mg.addColorStop(0, 'rgba(190,210,255,.9)'); mg.addColorStop(1, 'rgba(190,210,255,0)');
+    ctx.fillStyle = mg; ctx.fillRect(W.x - 26 * s, W.y - 8 * s, 52 * s, 14 * s);
+    ctx.globalAlpha = vis * flick;
+    ctx.translate(W.x, W.y); ctx.rotate(W.bow * 0.28);
+    // the coat sways a little at the hem; drawn in thin strips so the top stays still
+    for (let sy = 0; sy < WSH; sy += 2) {
+      const f = Math.max(0, (sy - 56) / (WSH - 56)), dx = Math.sin(t * 1.3 + sy * 0.09) * 1.5 * f * f * s;
+      ctx.drawImage(spr, 0, sy, WSW, 2, -w / 2 + dx, -h + sy * s, w, 2 * s + 0.6);
+    }
+    // drifting dark wisps and cold motes around him
+    for (let i = 0; i < 9; i++) {
+      const ph = i * 1.7, u = ((t * 0.18 + i * 0.11) % 1), wx = (i % 3 - 1) * 14 * s + Math.sin(t * 0.8 + ph) * 6 * s, wy = -h * (0.15 + 0.85 * ((i * 0.37) % 1)) - u * 18 * s;
+      ctx.globalAlpha = vis * 0.3 * (1 - u) * (i % 2 ? 0.7 : 1);
+      ctx.fillStyle = i % 3 === 0 ? '#9fb4ff' : '#10143a'; ctx.fillRect(Math.round(wx), Math.round(wy), 2, 2);
+    }
+    ctx.restore();
+    // eye glow
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, 0, W_TREE, 360); ctx.clip();
+    const th = W.bow * 0.28, ey0 = 28 / WSH, pulse = 0.85 + 0.15 * Math.sin(t * 2.3);
+    [-2, 2].forEach(dxp => {
+      const lx = dxp * s, ly = -h * (1 - ey0), ex = W.x + lx * Math.cos(th) - ly * Math.sin(th), ey = W.y + lx * Math.sin(th) + ly * Math.cos(th);
+      ctx.globalAlpha = 0.55 * vis * pulse * (W.bow > 0.4 ? 0.3 : 1);
+      const eg = ctx.createRadialGradient(ex, ey, 0, ex, ey, 6 * s); eg.addColorStop(0, 'rgba(220,235,255,.95)'); eg.addColorStop(1, 'rgba(220,235,255,0)');
+      ctx.fillStyle = eg; ctx.fillRect(ex - 8 * s, ey - 8 * s, 16 * s, 16 * s);
+    });
+    // faint glow from the fungi on his hem
+    ctx.globalAlpha = 0.22 * vis * (0.7 + 0.3 * Math.sin(t * 1.7));
+    const fx = W.x + (-8) * s, fy = W.y - 1 * s, fg = ctx.createRadialGradient(fx, fy, 0, fx, fy, 9 * s); fg.addColorStop(0, 'rgba(127,232,208,.9)'); fg.addColorStop(1, 'rgba(127,232,208,0)');
+    ctx.fillStyle = fg; ctx.fillRect(fx - 9 * s, fy - 9 * s, 18 * s, 18 * s);
+    ctx.restore();
+  }
+  { const _dc = drawClearing;
+    drawClearing = function (dt, t) { _dc.apply(this, arguments); try { watcherDrawFrame(dt, t); } catch (e) { WATCH.on = false; } }; }
+  // leaving the clearing ends the visit at once
+  setInterval(() => { if (WATCH.on && scene !== 'clearing') watcherEnd(); }, 400);
+  // tapping him sends him away
+  { const _tc = tapClearing;
+    tapClearing = function (p) {
+      if (WATCH.on && WATCH.alpha > 0.25 && WATCH.phase !== 'out' && inRect(p, watcherBox())) { WATCH.quick = true; watcherPhase('out'); return; }
+      return _tc.apply(this, arguments);
+    }; }
+  // a burial while he is near
+  { const _fb = finishBurial;
+    finishBurial = function () {
+      const had = !!GRAVE.anim;
+      _fb.apply(this, arguments);
+      if (!had || !WATCH.on || WATCH.alpha < 0.4 || WATCH.phase === 'out') return;
+      WATCH.pending = true;
+      if (WATCH.phase === 'linger' || WATCH.phase === 'after') watcherPhase('bow');
+      else if (WATCH.phase === 'stand' || WATCH.phase === 'in') { /* he will walk over, then bow */ }
+    }; }
+  function watcherLeaveGift() {
+    const gs = deathSt().graves, g = gs[gs.length - 1]; if (!g) return;
+    const roll = Math.random(), kind = roll < 0.4 ? 'spore' : roll < 0.7 ? 'feather' : 'candle', w = watcherSt();
+    g.gift = kind; w.gifts++;
+    let msg;
+    if (kind === 'spore') { const n = 100 + Math.floor(Math.random() * 61); state.spores += n; msg = `He left a handful of strange spores on the grave (+${n})`; }
+    else if (kind === 'feather') { state.spores += 60; msg = 'He left a black feather on the grave (+60 spores)'; }
+    else msg = 'He left a pale candle on the grave that never seems to go out';
+    save();
+    showToast(msg, 5200);
+    try { Sfx && Sfx.gift && Sfx.gift(); } catch (e) { /* optional */ }
+    for (let i = 0; i < 6; i++) effects.push({ kind: 'sparkle', x: GRAVE.x + rand(-16, 16), y: GRAVE.y - 10 - rand(0, 12), dx: rand(-4, 4), dy: -14, age: -i * 0.1, life: 1.2, color: '#bfe8ff' });
+    try { achCheck(false); } catch (e) { /* achievements are optional */ }
+  }
+  // what he leaves is drawn beside the grave marker
+  { const _m = drawGraveMarker;
+    drawGraveMarker = function (g, i, t) {
+      _m.apply(this, arguments);
+      if (!g.gift) return;
+      const s = graveSlot(i);
+      if (g.gift === 'candle') {
+        pxRect(s.x + 5, s.y - 4, 3, 5, '#e6e2cf'); pxRect(s.x + 6, s.y - 6, 1, 2, '#bfe8ff');
+        const a = 0.35 + 0.1 * Math.sin(t * 4 + i), rg = ctx.createRadialGradient(s.x + 6, s.y - 5, 0, s.x + 6, s.y - 5, 14);
+        rg.addColorStop(0, `rgba(190,232,255,${a})`); rg.addColorStop(1, 'rgba(190,232,255,0)'); ctx.fillStyle = rg; ctx.fillRect(s.x - 8, s.y - 19, 28, 28);
+      } else if (g.gift === 'feather') {
+        pxRect(s.x + 6, s.y - 11, 1, 10, '#14162a'); pxRect(s.x + 5, s.y - 10, 1, 3, '#14162a'); pxRect(s.x + 7, s.y - 9, 1, 4, '#14162a'); pxRect(s.x + 5, s.y - 6, 1, 3, '#3a4070'); pxRect(s.x + 7, s.y - 5, 1, 2, '#3a4070');
+      } else {
+        const a = 0.4 + 0.15 * Math.sin(t * 3 + i), rg = ctx.createRadialGradient(s.x + 6, s.y - 2, 0, s.x + 6, s.y - 2, 10);
+        rg.addColorStop(0, `rgba(150,240,255,${a})`); rg.addColorStop(1, 'rgba(150,240,255,0)'); ctx.fillStyle = rg; ctx.fillRect(s.x - 4, s.y - 12, 20, 20);
+        pxRect(s.x + 5, s.y - 3, 3, 3, '#9cf0ff'); pxRect(s.x + 6, s.y - 2, 1, 1, '#ffffff');
+      }
+    }; }
+  // the Journal keeps count
+  { const _c = showCollection;
+    showCollection = function () {
+      const r = _c.apply(this, arguments);
+      try {
+        const w = watcherSt(); if (!w.seen) return r;
+        const box = $('modalBody'); if (!box) return r;
+        const p = document.createElement('p'); p.className = 'fine-print';
+        p.textContent = `The Watcher: seen ${w.seen} ${w.seen === 1 ? 'time' : 'times'}${w.gifts ? ` · ${w.gifts} ${w.gifts === 1 ? 'gift' : 'gifts'} left at the grave` : ''}.`; box.append(p);
+      } catch (e) { /* optional */ }
+      return r;
+    }; }
   // ---- the frame loop and taps for Starfall Clearing
   function drawClearing(dt, t) {
     const phase = clearingPhaseNow();

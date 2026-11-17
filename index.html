@@ -2476,7 +2476,7 @@ const CG_DATA = (() => {
   // ======================================================================
   // 1. Configuration & helpers
   // ======================================================================
-  const BUILD = '1.7.3';
+  const BUILD = '1.7.7';
   const W = 640,
     H = 360; // internal canvas resolution; the stage scales it to fit
   const MAX = 8; // terrarium capacity
@@ -9245,6 +9245,17 @@ const CG_DATA = (() => {
         puff(a, out, t, { kind: 'brown', type: 'lowpass', freq: 380, dur: 0.25, gain: 0.15, att: 0.015, wet: 0.2 });
       },
       scribble(a, out, t) { [0, 0.075, 0.16].forEach(d => puff(a, out, t + d, { freq: 1700 + Math.random() * 400, q: 2.2, dur: 0.055, gain: 0.3, att: 0.012, wet: 0.05 })); },
+      hoot(a, out, t, p = {}) { [0, 0.42].forEach((d, i) => tone(a, out, t + d, { f0: 420 - i * 40, f1: 360 - i * 40, dur: 0.34, gain: 0.07, att: 0.06, lp: 900, pan: p.pan, wet: 0.5 })); [0.95, 1.2, 1.45].forEach(d => tone(a, out, t + d, { f0: 400, f1: 340, dur: 0.18, gain: 0.05, att: 0.03, lp: 900, pan: p.pan, wet: 0.5 })); },
+      howl(a, out, t, p = {}) { tone(a, out, t, { f0: 330, f1: 640, glide: 1.2, dur: 3.4, gain: 0.05, att: 0.6, type: 'triangle', vib: [5, 9], lp: 1500, pan: p.pan, wet: 0.65 }); tone(a, out, t + 1.2, { f0: 640, f1: 420, glide: 1.8, dur: 2.2, gain: 0.04, att: 0.3, type: 'triangle', vib: [5.5, 10], lp: 1400, pan: p.pan, wet: 0.65 }); },
+      croak(a, out, t, p = {}) { [0, 0.16, 0.34].forEach(d => tone(a, out, t + d, { f0: 150, f1: 120, dur: 0.1, gain: 0.05, att: 0.01, type: 'sawtooth', lp: 500, pan: p.pan, wet: 0.2 })); },
+      woodtap(a, out, t, p = {}) { for (let i = 0; i < 9; i++) puff(a, out, t + i * 0.055, { freq: 1900, q: 3, dur: 0.03, gain: 0.35, att: 0.003, pan: p.pan, wet: 0.15 }); },
+      caw(a, out, t, p = {}) { [0, 0.3, 0.6].forEach(d => { tone(a, out, t + d, { f0: 620, f1: 420, dur: 0.2, gain: 0.04, att: 0.02, type: 'sawtooth', lp: 1500, pan: p.pan, wet: 0.35 }); puff(a, out, t + d, { freq: 1100, q: 1, dur: 0.18, gain: 0.12, att: 0.02, pan: p.pan, wet: 0.3 }); }); },
+      screech(a, out, t, p = {}) { tone(a, out, t, { f0: 2400, f1: 1500, dur: 0.7, gain: 0.03, att: 0.05, vib: [18, 80], lp: 4200, pan: p.pan, wet: 0.6 }); },
+      quack(a, out, t, p = {}) { [0, 0.2].forEach(d => tone(a, out, t + d, { f0: 520, f1: 330, dur: 0.12, gain: 0.045, att: 0.01, type: 'square', lp: 1400, pan: p.pan, wet: 0.25 })); },
+      buzz(a, out, t, p = {}) { tone(a, out, t, { f0: 190, f1: 210, dur: 0.7, gain: 0.03, att: 0.08, type: 'sawtooth', vib: [30, 14], lp: 900, pan: p.pan, wet: 0.2 }); },
+      squeak(a, out, t, p = {}) { tone(a, out, t, { f0: 3200, f1: 4200, dur: 0.06, gain: 0.025, att: 0.005, pan: p.pan, wet: 0.2 }); tone(a, out, t + 0.1, { f0: 3600, f1: 3000, dur: 0.05, gain: 0.02, att: 0.005, pan: p.pan, wet: 0.2 }); },
+      musicbox(a, out, t) { [659, 784, 988, 784, 880, 659, 587, 659].forEach((f, i) => bell(a, out, t + i * 0.42, f, { gain: 0.035, dur: 0.9, wet: 0.6 })); },
+      dawnsong(a, out, t, p = {}) { for (let k = 0; k < 6; k++) V.bird(a, out, t + k * 0.9 + Math.random() * 0.4, { gain: 0.02, pan: (Math.random() - 0.5) * 1.2 }); },
       thunder(a, out, t) {
         puff(a, out, t, { kind: 'brown', type: 'lowpass', freq: 150, q: 0.6, dur: 3.2, gain: 0.45, att: 0.35, wet: 0.5 });
         tone(a, out, t, { f0: 52, f1: 34, dur: 2.6, gain: 0.16, att: 0.3, wet: 0.3 });
@@ -9487,6 +9498,7 @@ const CG_DATA = (() => {
       thunder: () => shot('thunder', null, 800),
       patter: g => { if (STEPS[levelIdx.weather] > 0 && !muted && ensure() && ac.state === 'running') { const w = bedTargets(); if (w.rainAmt > 0) V.patter(ac, ambBus, ac.currentTime + 0.01, { g }); } },
       gift: () => shot('gift', null, 300),
+      play: (name, pan) => { if (V[name]) shot(name, { pan: pan == null ? 0 : pan }, 500); },
       // volume steps for the three buses: 0 FULL, 1 MEDIUM, 2 LOW, 3 OFF
       levelName: k => STEP_NAMES[levelIdx[k]],
       cycleLevel(k) { levelIdx[k] = (levelIdx[k] + 1) % 4; try { localStorage.setItem(LKEY, JSON.stringify(levelIdx)); } catch (e) {} applyLevels(); if (k === 'sfx') shot('pop'); return STEP_NAMES[levelIdx[k]]; },
@@ -14409,18 +14421,19 @@ const CG_DATA = (() => {
     }
     // moon
     if (S.moonU > 0 && S.moonU < 1 && S.moon.ill > 0.02) {
-      const u = S.moonU, mx = x0 + 30 + u * (ww - 60), my = y1 - 18 - Math.sin(Math.PI * u) * 130, vis = (0.3 + 0.7 * night) * (1 - c.cloud * 0.8), p = S.moon.p, r = 14;
-      ctx.fillStyle = `rgba(210,225,255,${(0.07 * vis * S.moon.ill).toFixed(3)})`; ctx.fillRect(mx - 24, my - 24, 48, 48);
-      ctx.fillStyle = `rgba(210,225,255,${(0.05 * vis * S.moon.ill).toFixed(3)})`; ctx.fillRect(mx - 18, my - 18, 36, 36);
+      const u = S.moonU, mx = x0 + 30 + u * (ww - 60), my = y1 - 18 - Math.sin(Math.PI * u) * 130, vis = (0.3 + 0.7 * night) * (1 - c.cloud * 0.8), p = S.moon.p, mc = evMoonCols(S), r = mc.r;
+      ctx.fillStyle = `rgba(${mc.glow},${(0.07 * vis * S.moon.ill).toFixed(3)})`; ctx.fillRect(mx - 24, my - 24, 48, 48);
+      ctx.fillStyle = `rgba(${mc.glow},${(0.05 * vis * S.moon.ill).toFixed(3)})`; ctx.fillRect(mx - 18, my - 18, 36, 36);
       for (let dy = -r; dy <= r; dy += 2) {
         const w = Math.sqrt(r * r - dy * dy), tx = p < 0.5 ? w * Math.cos(2 * Math.PI * p) : -w * Math.cos(2 * Math.PI * (1 - p));
         for (let dx = -Math.floor(w / 2) * 2; dx <= w; dx += 2) {
           const lit = p < 0.5 ? dx >= tx : dx <= tx;
-          ctx.fillStyle = lit ? `rgba(250,250,232,${Math.min(1, 1.25 * vis).toFixed(2)})` : `rgba(80,96,150,${(0.5 * vis).toFixed(2)})`;
+          ctx.fillStyle = lit ? `rgba(${mc.lit},${Math.min(1, 1.25 * vis).toFixed(2)})` : `rgba(${mc.dim},${(0.5 * vis).toFixed(2)})`;
           wxPx(mx + dx, my + dy, 2, 2);
         }
       }
     }
+    eventsSky(dt, t, S, c, night);
     // clouds
     const wet = clamp(c.rain * 0.6 + c.storm * 0.4 + c.snow * 0.1, 0, 1);
     const cl = lerpC(lerpC([238, 242, 247], [118, 126, 138], wet), lerpC([34, 40, 64], [28, 32, 46], wet), clamp(-alt * 2 + 0.15, 0, 1)), warm = clamp(1 - Math.abs(alt) / 0.18, 0, 1) * 0.5;
@@ -14438,7 +14451,7 @@ const CG_DATA = (() => {
     ctx.restore();
     // distant hills and trees
     const hl = clamp((alt + 0.25) / 0.6, 0.2, 1), haze = c.fog * 0.5;
-    woodsFar(dt, t, S, c, hl, haze); woodsNear(dt, t, S, c, hl, haze);
+    woodsFar(dt, t, S, c, hl, haze); eventsGround(dt, t, S, c, night); woodsNear(dt, t, S, c, hl, haze); eventsFront(dt, t, S, c, night);
     if (c.fog > 0.05) { for (let b = 0; b < 3; b++) { ctx.fillStyle = `rgba(226,234,234,${(c.fog * 0.2).toFixed(3)})`; ctx.fillRect(x0, y1 - 70 + b * 24 + Math.sin(t * 0.3 + b) * 4, ww, 30); } ctx.fillStyle = `rgba(226,234,234,${(c.fog * 0.16).toFixed(3)})`; ctx.fillRect(x0, y0, ww, y1 - y0); }
     // rain beyond the glass
     if (c.rain > 0.02) {
@@ -15102,21 +15115,41 @@ const CG_DATA = (() => {
   // ======================================================================
   const LOST = { force: false, chance: 0.28, spots: [[140, 288], [440, 292], [396, 272], [560, 280], [112, 268], [372, 300]] };
   const LOST_ITEMS = ['honeydew', 'peek', 'jelly', 'goldbait', 'basket', 'chalk', 'oil', 'grub', 'ribbon', 'nametag'];
-  function lostRoll() {
-    if (!state) return;
+  // 2-5 drops a day at random times; each one stays for an hour, then is gone.
+  const LOST_LIFE = 3600000;
+  function lostPlan() {
     const key = dateKey();
-    if (state.lostFound && state.lostFound.day === key && !LOST.force) return;
-    const rnd = Math.random;
-    if (!LOST.force && rnd() >= LOST.chance) { state.lostFound = { day: key, none: true }; save(); return; }
-    const items = LOST_ITEMS.filter(id => ITEM[id]);
+    if (!state.lostPlan || state.lostPlan.day !== key) {
+      const r = mulberry(hashStr('lostplan:' + key)), n = 2 + Math.floor(r() * 4), d0 = new Date(); d0.setHours(0, 0, 0, 0);
+      const times = Array.from({ length: n }, () => d0.getTime() + (7 + r() * 15) * 3600000).sort((x, y) => x - y);
+      state.lostPlan = { day: key, times, used: [] };
+    }
+    return state.lostPlan;
+  }
+  function lostSpawn(now) {
+    const rnd = Math.random, items = LOST_ITEMS.filter(id => ITEM[id]);
     const coins = LOST.forceKind ? LOST.forceKind === 'coins' : rnd() < 0.55;
     const thing = coins ? { kind: 'coins', n: Math.max(60, Math.round((120 + rnd() * 530) / 10) * 10) } : { kind: 'item', id: items[Math.floor(rnd() * items.length)], n: 1 };
     const sp = LOST.spots[Math.floor(rnd() * LOST.spots.length)];
-    state.lostFound = { day: key, thing, x: sp[0], y: sp[1], done: false };
-    LOST.force = false; LOST.forceKind = null;
-    save();
+    const old = state.lostFound;
+    if (old && old.thing && old.done && !old.counted && typeof stats === 'function') stats().lost++;
+    state.lostFound = { day: dateKey(), thing, x: sp[0], y: sp[1], done: false, exp: now + LOST_LIFE };
   }
-  const lostActive = () => !!(state && state.lostFound && state.lostFound.thing && !state.lostFound.done);
+  function lostRoll() {
+    if (!state) return;
+    const now = Date.now(), f = state.lostFound;
+    if (f && f.thing && !f.done && f.exp && now > f.exp) { f.done = true; f.expired = true; f.counted = true; save(); }
+    if (LOST.force) { lostSpawn(now); LOST.force = false; LOST.forceKind = null; save(); return; }
+    if (lostActive()) return;
+    const pl = lostPlan();
+    for (let i = 0; i < pl.times.length; i++) {
+      if (pl.used.includes(i)) continue;
+      if (now >= pl.times[i] + LOST_LIFE) { pl.used.push(i); continue; }
+      if (now >= pl.times[i]) { pl.used.push(i); lostSpawn(pl.times[i]); save(); return; }
+    }
+  }
+  setInterval(() => { try { if (state && !document.hidden) lostRoll(); } catch (e) {} }, 30000);
+  const lostActive = () => !!(state && state.lostFound && state.lostFound.thing && !state.lostFound.done && !(state.lostFound.exp && Date.now() > state.lostFound.exp));
   function lostHit(p) {
     if (!lostActive() || !p) return false;
     const f = state.lostFound;
@@ -15681,6 +15714,25 @@ const CG_DATA = (() => {
   // ---- what's new
   // newest first; players who skipped an update see everything they missed (up to three versions)
   const CHANGELOG = [
+    { v: '1.7.7', notes: [
+      'Lost property in Starfall Clearing now turns up 2 to 5 times a day at random times, and each item is gone again after an hour.',
+    ] },
+    { v: '1.7.6', notes: [
+      'Lots more outside the window: hawks, crows, woodpeckers, robins, herons, ducks, frogs, badgers, stags, deer with fawns, mice, bees, ladybirds, snails, spiders, caterpillars, dragonflies, glow-worms, a far-off wolf, paper lanterns, a hot-air balloon, kites, a distant campfire and more. Some come with their own sounds.',
+      'Stranger things after dark: eyes in the grass, a ghost deer, a figure in the fog, a scarecrow that turns, a new tree on the ridge, a second distant light, the cabin light flickering, the Watcher peeking from behind a tree. Very rare.',
+      'New sky events: supermoons, blue moons, planets in a row, glowing clouds, zodiacal light, sundogs, a green flash at sunset, storm clouds building. Plus fog, sun showers, dew, mist, heat shimmer, puddles, sunbeams, rime frost, mushrooms after rain, and a spider web that grows in the window corner.',
+      'The landscape changes slowly: moss climbs the trunks over weeks, blossom thickens in spring, autumn colour deepens, and snow stays on the ground for days.',
+      'New Journal tab, OUTSIDE: everything you have spotted with counts and first-seen dates, plus a sky forecast for the next few nights. New Outside achievements too.',
+    ] },
+    { v: '1.7.5', notes: [
+      'Visitors now turn up by chance while you watch, to suit the time of day, season and weather: deer, rabbits, foxes, hedgehogs, squirrels, owls (including one sitting in the big tree), bats, birds, geese, butterflies, a dragonfly, will-o-the-wisps, moths on the glass, a cat on the cabin roof, a lantern wanderer, and, very rarely, the Watcher.',
+      'Sky events follow the calendar: auroras, blood moons, lunar eclipses, comets, the harvest moon, solstice lights, and real annual meteor showers (Perseids, Leonids, Geminids and more).',
+      'Weather has more to it too: hail, windstorms with flying leaves, frost on the glass and snow piling on the window frame. Nothing outside reacts to taps any more.',
+    ] },
+    { v: '1.7.4', notes: [
+      'Rare things now happen outside the terrarium window: a blood moon, aurora, meteor showers, will-o-the-wisps, an owl, bats at dusk, a lantern wanderer, a fox, a deer at dawn or dusk, rainbows after rain, and the Watcher far away on the hill with glowing eyes.',
+      'Each night and dawn is planned from the date, so everyone sees the same sky. Tap a visitor and it startles away.',
+    ] },
     { v: '1.7.3', notes: [
       'The view outside the terrarium window is now a woodland. Big trees stand close on both sides, with a glade in the middle.',
       'The distance is more detailed: mountains, a ridge of tiny trees, a cabin with a lit window and chimney smoke, a lake, a meadow and a fence. It changes with the seasons, with blossom, autumn leaves and snow.',
@@ -16000,13 +16052,13 @@ const CG_DATA = (() => {
   // 9y. The Journal as a bug encyclopedia: species entries, achievements, and the settings cog.
   // ======================================================================
   const capFirst = k => k.charAt(0).toUpperCase() + k.slice(1);
-  const JOURNAL_TABS = [['collection', 'COLLECTION'], ['ach', 'ACHIEVEMENTS'], ['guide', 'FIELD GUIDE'], ['satchel', 'SATCHEL']];
+  const JOURNAL_TABS = [['collection', 'COLLECTION'], ['ach', 'ACHIEVEMENTS'], ['guide', 'FIELD GUIDE'], ['satchel', 'SATCHEL'], ['outside', 'OUTSIDE']];
   function journalTabsHTML(active) {
     const open = '<div class="journal' + '-tabs">';
     return open + JOURNAL_TABS.map(([k, l]) => `<button class="shop-tab${k === active ? ' on' : ''}" id="tab${capFirst(k)}">${l}</button>`).join('') + '</div>';
   }
   function journalTabs() {
-    const go = { Collection: showCollection, Ach: showAchievements, Guide: showGuide, Satchel: showSatchel };
+    const go = { Collection: showCollection, Ach: showAchievements, Guide: showGuide, Satchel: showSatchel, Outside: showOutside };
     Object.keys(go).forEach(k => { const el = $('tab' + k); if (el) el.onclick = go[k]; });
   }
 
@@ -16080,6 +16132,18 @@ const CG_DATA = (() => {
       ['days3', 'clock', 'Regular Visitor', 'Visit on 3 different days.', 3, () => stats().days],
       ['days7', 'clock', 'Weekly Warden', 'Visit on 7 different days.', 7, () => stats().days],
       ['days30', 'clock', 'Seasoned Warden', 'Visit on 30 different days.', 30, () => stats().days],
+    ]],
+    ['OUTSIDE THE WINDOW', [
+      ['out10', 'leaf', 'Window Watcher', 'Spot 10 different things outside the window.', 10, () => sightN()],
+      ['out30', 'leaf', 'Woodland Regular', 'Spot 30 different things outside.', 30, () => sightN()],
+      ['out60', 'leaf', 'Keeper of the Woods', 'Spot 60 different things outside.', 60, () => sightN()],
+      ['outAll', 'leaf', 'Nothing Escapes You', 'Spot everything in the Outside page.', 999, () => (sightN() >= outTotal() ? 999 : sightN())],
+      ['outWatcher', 'curse', 'Something in the Distance', 'Spot the Watcher on the far hill.', 1, () => sightAny('watcher', 'watcherPeek')],
+      ['outBlood', 'clock', 'Red Night', 'See a Blood Moon.', 1, () => sightAny('blood')],
+      ['outComet', 'clock', 'Once in a While', 'See a comet.', 1, () => sightAny('comet')],
+      ['outAurora', 'clock', 'Northern Lights', 'See an aurora.', 1, () => sightAny('aurora')],
+      ['outShower', 'clock', 'Make a Wish', 'See a meteor shower.', 1, () => sightAny('shower')],
+      ['outYear', 'leaf', 'A Year of Seasons', 'See the first snow, blossom and turning leaves.', 3, () => sightAny('firstsnow', 'firstblossom', 'firstleaf')],
     ]],
   ];
   const ACH = ACH_GROUPS.flatMap(([, list]) => list.map(([id, icon, title, desc, goal, get]) => ({ id, icon, title, desc, goal, get })));
@@ -17919,6 +17983,671 @@ function fitPlate() {
       }
     }
   }
+  // ======================================================================
+  // 9t. Outside the window.
+  //   * Sky events (aurora, blood moon, eclipse, meteor showers, comets, harvest
+  //     moon, solstice lights) are planned from the date, so everyone sees the
+  //     same sky however often they open the game.
+  //   * Visitors (animals, owls, wisps, birds, the Watcher...) simply turn up
+  //     now and then while you are watching, chosen to suit the time of day,
+  //     the season and the weather.
+  // ======================================================================
+  const EV = { force: {}, key: '', plan: null, rain: 0, rb: null, shots: [], nextShot: 0, logged: {}, vis: [], cool: 25, hail: null, hailAt: 0, snowCap: 0, frost: null };
+  const EV_NAME = {
+    blood: ['Blood Moon', 'The moon has turned red.'], eclipse: ['Lunar Eclipse', 'The moon is slipping into the earth\'s shadow.'], harvest: ['Harvest Moon', 'A huge orange moon hangs over the hills.'],
+    aurora: ['Aurora', 'Ribbons of light are dancing over the hills.'], shower: ['Meteor Shower', 'Shooting stars are streaking across the sky.'], comet: ['Comet', 'A comet is hanging in the sky with a long pale tail.'],
+    solstice: ['Solstice Lights', 'Tiny lights glow along the far ridge, a solstice night.'], rainbow: ['Rainbow', 'A rainbow has come out after the rain.'],
+    hail: ['Hail', 'Hail is rattling past the window.'], windstorm: ['Windstorm', 'The wind is tearing leaves through the woods.'], frost: ['Frost', 'Frost ferns have grown across the glass.'], snowcap: ['Snow on the sill', 'Snow is piling up on the window frame.'],
+    watcher: ['The Watcher', 'Something is standing far away on the hill, watching. It has glowing eyes.'], wisps: ["Will-o'-the-wisps", 'Pale lights are bobbing over the meadow.'], owl: ['Owl', 'An owl glides across the sky.'],
+    owlTree: ['Owl in the tree', 'An owl is sitting in the big tree, blinking.'], lantern: ['Lantern Wanderer', 'Someone is walking the far field with a lantern.'], fox: ['Fox', 'A fox is trotting across the meadow.'],
+    deer: ['Deer', 'A deer has wandered out to graze.'], rabbit: ['Rabbit', 'A rabbit is hopping across the meadow.'], hedgehog: ['Hedgehog', 'A hedgehog is snuffling across the grass.'], bats: ['Bats', 'Bats are flitting about.'],
+    cat: ['Cabin cat', 'A cat is sitting on the cabin roof.'], moth: ['Moth', 'A big moth has landed on the glass.'], birds: ['Birds', 'A flock of birds flies by.'], geese: ['Geese', 'Geese are flying south in a V.'],
+    butterfly: ['Butterflies', 'Butterflies are fluttering past.'], dragonfly: ['Dragonfly', 'A dragonfly is darting over the lake.'], squirrel: ['Squirrel', 'A squirrel is scampering up a tree.'],
+  };
+  const evMid = (a, b, c) => Math.max(a, Math.min(b, c));
+  const wdRidge = (x, base, a1, a2, a3, ph) => base - (Math.sin(x * 0.011 + ph) * a1 + Math.sin(x * 0.027 + ph * 2) * a2 + Math.sin(x * 0.061 + ph * 3) * a3);
+  const evRidgeY = x => wdRidge(x, WXW.y1 - 32, 8, 5, 2, 2.2), evMeadowY = x => wdRidge(x, WXW.y1 - 15, 3, 2, 1, 0.7);
+
+  // ---- date-planned sky events
+  const EV_SHOWERS = [[0, 3, 'Quadrantid Meteor Shower'], [0, 4, 'Quadrantid Meteor Shower'], [3, 22, 'Lyrid Meteor Shower'], [7, 12, 'Perseid Meteor Shower'], [7, 13, 'Perseid Meteor Shower'], [9, 21, 'Orionid Meteor Shower'], [10, 17, 'Leonid Meteor Shower'], [10, 18, 'Leonid Meteor Shower'], [11, 13, 'Geminid Meteor Shower'], [11, 14, 'Geminid Meteor Shower']];
+  function evNightStart(now) { const d = new Date(now); if (d.getHours() < 12) d.setDate(d.getDate() - 1); d.setHours(19, 0, 0, 0); return d.getTime(); }
+  function evPlanFor(start) {
+    EV.plans = EV.plans || {};
+    const key = String(start);
+    if (EV.plans[key]) return EV.plans[key];
+    const r = mulberry(hashStr('evplan:' + key)), H = 3600000, pl = {}, D = new Date(start), m = D.getMonth(), d = D.getDate();
+    const win = (p, lo, hi, span = 9) => { if (r() >= p) return null; const a = start + r() * span * H; return { a, b: a + (lo + r() * (hi - lo)) * 60000 }; };
+    pl.aurora = win(1 / 30, 40, 120);
+    const real = EV_SHOWERS.find(s => s[0] === m && s[1] === d);
+    pl.shower = real ? { a: start + 1 * H, b: start + 8 * H, name: real[2], heavy: true } : win(1 / 20, 6, 14);
+    if (pl.shower && !pl.shower.name) pl.shower.name = 'Meteor Shower';
+    pl.blood = r() < 0.25;
+    pl.eclipse = r() < 0.06 ? (() => { const a = start + (1 + r() * 6) * H; return { a, b: a + (55 + r() * 20) * 60000 }; })() : null;
+    const wk = Math.floor(start / (7 * 86400000)), cr = mulberry(hashStr('comet:' + wk));
+    pl.comet = cr() < 1 / 22 ? { day: Math.floor((start / 86400000) - wk * 7) % 7, ph: cr() } : null;
+    pl.solstice = (m === 5 && d >= 20 && d <= 22) || (m === 11 && d >= 20 && d <= 22) ? { a: start + 0.5 * H, b: start + 9 * H, name: m === 5 ? 'Midsummer' : 'Midwinter' } : null;
+    pl.harvestOK = (m === 8 && d >= 15) || (m === 9 && d <= 6);
+    pl.super = r() < 0.25;
+    pl.planets = win(1 / 25, 90, 240);
+    pl.nocti = (m === 5 || m === 6) && r() < 0.15 ? { a: start - 1.5 * H, b: start + 1.2 * H } : null;
+    pl.zodiac = (m === 2 || m === 3 || m === 8 || m === 9) && r() < 0.18 ? { a: start + 8 * H, b: start + 10.5 * H } : null;
+    EV.plans[key] = pl;
+    return pl;
+  }
+  function evPlanNow() {
+    const start = evNightStart(Date.now()), key = String(start);
+    if (EV.key !== key) { EV.key = key; EV.shots = []; }
+    EV.plan = evPlanFor(start);
+    return EV.plan;
+  }
+  const evWin = (name, S) => {
+    if (EV.force[name]) return { a: Date.now() - 150000, b: Date.now() + 3600000, forced: true, name: 'Meteor Shower' };
+    if (S.alt > -0.06) return null;
+    const w = evPlanNow()[name], n = Date.now();
+    return w && n >= w.a && n <= w.b ? w : null;
+  };
+  const evFade = (w, secs = 20) => { const n = Date.now(); return evMid(0, 1, Math.min((n - w.a) / (secs * 1000), (w.b - n) / (secs * 1000))); };
+  const evFull = S => S.moon && S.moon.ill > 0.85 && S.alt < -0.04 && S.moonU > 0 && S.moonU < 1;
+  const evBlood = S => (EV.force.blood || (evPlanNow().blood && evFull(S))) && S.alt < -0.04 && S.moonU > 0 && S.moonU < 1;
+  const evHarvest = S => (EV.force.harvest || (evPlanNow().harvestOK && evFull(S)));
+  const evEclipseP = S => { if (EV.force.eclipse) return 1; const w = evPlanNow().eclipse, n = Date.now(); return w && evFull(S) && n >= w.a && n <= w.b ? Math.sin(Math.PI * (n - w.a) / (w.b - w.a)) : 0; };
+  function evLog(name, key) {
+    const k = name + ':' + (key || EV.key || dateKey());
+    if (EV.logged[k] || scene !== 'terrarium' || showcase || !EV_NAME[name]) return;
+    EV.logged[k] = 1;
+    const s = state.sightings || (state.sightings = {}); s[name] = (s[name] || 0) + 1;
+    const ff = state.sightFirst || (state.sightFirst = {}); if (!ff[name]) ff[name] = Date.now();
+    save();
+    showToast(`${EV_NAME[name][0]}: ${EV_NAME[name][1]}`, 4200);
+  }
+  function evMoonCols(S) {
+    const mix = (a, b, p) => a.map((v, i) => Math.round(v + (b[i] - v) * p)).join(',');
+    let glow = [210, 225, 255], lit = [250, 250, 232], dim = [80, 96, 150], r = 14;
+    if (evBlood(S)) { evLog('blood'); glow = [255, 60, 40]; lit = [226, 66, 44]; dim = [70, 16, 16]; r = 16; }
+    else if (evHarvest(S)) { evLog('harvest'); glow = [255, 150, 60]; lit = [255, 176, 82]; dim = [110, 66, 40]; r = 19; }
+    const ep = evEclipseP(S);
+    if (ep > 0.02) { evLog('eclipse'); glow = mix(glow, [200, 70, 40], ep).split(',').map(Number); lit = mix(lit, [168, 70, 42], ep).split(',').map(Number); dim = mix(dim, [40, 18, 18], ep).split(',').map(Number); }
+    return { glow: glow.join(','), lit: lit.join(','), dim: dim.join(','), r, eclipse: ep };
+  }
+  const evTone = () => { const S = WXS && WXS.ready ? WXS : skyNow(); return 0.5 + clamp((S.alt + 0.25) / 0.6, 0.2, 1) * 0.8; };
+  const evRgb = (r, g, b, a = 1, k) => { const f = k == null ? evTone() : k; return `rgba(${Math.round(r * f)},${Math.round(g * f)},${Math.round(b * f)},${a})`; };
+
+  function evAnimal(x, y, kind, dir, step, k, pose) {
+    const r = (dx, dy, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x + dx * dir - (dir < 0 ? w : 0)), Math.round(y + dy), w, h); };
+    if (kind === 'fox') {
+      const body = evRgb(150, 78, 36, 1, k), dk = evRgb(40, 24, 18, 1, k), wh = evRgb(230, 226, 214, 1, k);
+      r(-6, -7, 10, 4, body); r(4, -9, 4, 4, body); r(8, -8, 2, 2, dk); r(4, -11, 1, 2, body); r(6, -11, 1, 2, body);
+      const tail = pose === 'look' ? 0 : 1; r(-12, -7 - tail, 7, 3, body); r(-14, -7 - tail, 3, 3, wh);
+      r(-5, -3, 1, 3 + (step ? 0 : -1), dk); r(-2, -3, 1, 3 + (step ? -1 : 0), dk); r(1, -3, 1, 3 + (step ? 0 : -1), dk); r(3, -3, 1, 3 + (step ? -1 : 0), dk);
+    } else {
+      const body = evRgb(124, 88, 56, 1, k), dk = evRgb(44, 30, 22, 1, k), lt = evRgb(196, 168, 128, 1, k);
+      r(-8, -13, 14, 7, body); r(-8, -7, 14, 2, lt);
+      const legs = pose === 'walk' ? (step ? 1 : 0) : 0;
+      r(-7, -6, 2, 6 - legs, dk); r(-3, -6, 2, 6 - (1 - legs) * (pose === 'walk' ? 1 : 0), dk); r(2, -6, 2, 6 - legs, dk); r(5, -6, 2, 6 - (1 - legs) * (pose === 'walk' ? 1 : 0), dk);
+      if (pose === 'graze') { r(6, -11, 3, 6, body); r(8, -6, 5, 3, body); r(11, -4, 2, 2, dk); } else { r(6, -17, 3, 7, body); r(7, -20, 5, 4, body); r(11, -19, 2, 2, dk); r(7, -24, 1, 4, dk); r(10, -24, 1, 4, dk); r(5, -26, 2, 2, dk); r(11, -26, 2, 2, dk); }
+      r(-10, -12, 3, 2, lt);
+    }
+  }
+
+
+  // ---- visitors: they just turn up now and then, to suit the moment
+  const VIS = {
+    deer: { w: x => (!x.wet && (x.twi ? 1.2 : x.day ? 0.3 : 0)), dur: [150, 300], L: 'ground' },
+    rabbit: { w: x => (!x.wet && (x.twi ? 1 : x.day ? 0.6 : 0)), dur: [40, 70], L: 'ground' },
+    fox: { w: x => (!x.wet && (x.night ? 0.9 : x.twi ? 0.6 : 0)), dur: [46, 46], L: 'ground' },
+    hedgehog: { w: x => (!x.wet && x.sea !== 'winter' && (x.night || x.twi) ? 0.5 : 0), dur: [60, 90], L: 'ground' },
+    owl: { w: x => (x.night ? 0.9 : 0), dur: [15, 15], L: 'sky' },
+    owlTree: { w: x => (x.night && !x.wet ? 0.6 : 0), dur: [60, 150], L: 'front' },
+    bats: { w: x => (x.dusk && x.mon >= 3 && x.mon <= 8 && !x.wet ? 0.9 : 0), dur: [25, 40], L: 'sky' },
+    wisps: { w: x => (x.night && !x.wet ? 0.55 : 0), dur: [45, 90], L: 'ground' },
+    lantern: { w: x => (x.night && !x.wet ? 0.1 : 0), dur: [80, 80], L: 'ground' },
+    watcher: { w: x => (x.night && !x.wet ? 0.12 : 0), dur: [150, 240], L: 'ground' },
+    cat: { w: x => (x.night && !x.wet ? 0.12 : 0), dur: [40, 90], L: 'ground' },
+    moth: { w: x => (x.night && x.mon >= 3 && x.mon <= 9 ? 0.5 : 0), dur: [40, 90], L: 'front' },
+    birds: { w: x => (x.day && !x.wet ? 1 : 0), dur: [14, 14], L: 'sky' },
+    geese: { w: x => (x.day && !x.wet && (x.sea === 'autumn' || x.sea === 'spring') ? 0.35 : 0), dur: [26, 26], L: 'sky' },
+    butterfly: { w: x => (x.day && !x.wet && (x.sea === 'spring' || x.sea === 'summer') ? 0.8 : 0), dur: [35, 35], L: 'sky' },
+    dragonfly: { w: x => (x.day && !x.wet && x.sea === 'summer' ? 0.5 : 0), dur: [40, 40], L: 'ground' },
+    squirrel: { w: x => (x.day && !x.wet && x.sea !== 'winter' ? 0.6 : 0), dur: [16, 16], L: 'front' },
+  };
+  function evCtx(S, c) { const sea = wdSeason(); return { sea, wet: c.rain > 0.3 || c.storm > 0.2 || c.snow > 0.3, night: S.alt < -0.06, twi: Math.abs(S.alt) < 0.2, day: S.alt > 0.08, dusk: S.alt < 0.12 && S.alt > -0.3, mon: new Date().getMonth(), wind: c.wind, fog: c.fog, moon: !!(S.moon && S.moonU > 0 && S.moonU < 1 && S.moon.ill > 0.5), rainRecent: Date.now() - (EV.rain || 0) < 3 * 3600000 || Date.now() - ((state && state.rainAt) || 0) < 3 * 3600000 }; }
+  function evSpawn(name) {
+    const D = VIS[name]; if (!D) return null;
+    const x0 = WXW.x0, ww = WXW.x1 - WXW.x0, now = Date.now(), dur = (D.dur[0] + Math.random() * (D.dur[1] - D.dur[0])) * 1000, R = Math.random;
+    const v = { n: name, born: now, end: now + dur, dir: R() < 0.5 ? -1 : 1, x: 0, y: 0, ph: R() * 6.28 };
+    if (name === 'deer') v.x = 180 + R() * 120;
+    if (name === 'rabbit') { v.x = v.dir > 0 ? 130 : 510; v.wait = 0; }
+    if (name === 'hedgehog') { v.x = v.dir > 0 ? 150 : 480; v.wait = 0; }
+    if (name === 'owl') v.y = WXW.y0 + 44 + R() * 40;
+    if (name === 'owlTree') v.eyeOff = 0;
+    if (name === 'bats') v.b = Array.from({ length: 6 }, (_, i) => ({ ph: i * 1.7, sp: 0.5 + R() * 0.5, y: WXW.y0 + 50 + R() * 90, ox: R() * ww }));
+    if (name === 'birds') v.b = Array.from({ length: 4 + Math.floor(R() * 4) }, () => ({ dx: R() * 50 * -v.dir, y: WXW.y0 + 24 + R() * 80, ph: R() * 6 }));
+    if (name === 'geese') v.y = WXW.y0 + 30 + R() * 40;
+    if (name === 'butterfly') v.b = Array.from({ length: 2 + Math.floor(R() * 2) }, () => ({ x: x0 + 130 + R() * (ww - 260), y: WXW.y0 + 100 + R() * 70, vx: (R() - 0.5) * 14, ph: R() * 6, col: [[240, 150, 60], [240, 240, 230], [120, 170, 240], [230, 110, 150]][Math.floor(R() * 4)] }));
+    if (name === 'dragonfly') { v.x = 262; v.y = WXW.y1 - 40; v.tx = 262; v.ty = v.y; v.next = 0; }
+    if (name === 'squirrel') v.side = R() < 0.5 ? -1 : 1;
+    if (name === 'moth') { v.x = x0 + 130 + R() * (ww - 260); v.y = WXW.y0 + 95 + R() * 80; }
+    if (name === 'wisps') v.hide = 0;
+    if (typeof EV2I !== 'undefined' && EV2I[name]) EV2I[name](v);
+    EV.vis.push(v);
+    evLog(name, String(v.born));
+    if (typeof evSound === 'function') evSound(name, v);
+    return v;
+  }
+  function evDirector(dt, S, c) {
+    const now = Date.now();
+    EV.vis = EV.vis.filter(v => now < v.end);
+    if (scene !== 'terrarium' || showcase || modalOpen()) return;
+    EV.cool -= dt;
+    if (EV.cool > 0 || EV.vis.length >= 2 || Math.random() > dt / 130) return;
+    const x = evCtx(S, c), have = new Set(EV.vis.map(v => v.n)), opts = Object.keys(VIS).filter(n => !have.has(n)).map(n => [n, VIS[n].w(x)]).filter(o => o[1] > 0);
+    const tot = opts.reduce((a, o) => a + o[1], 0); if (!tot) return;
+    let r = Math.random() * tot, pick = opts[0][0];
+    for (const o of opts) { r -= o[1]; if (r <= 0) { pick = o[0]; break; } }
+    EV.cool = 20 + Math.random() * 30;
+    evSpawn(pick);
+  }
+  const evFadeV = v => { const n = Date.now(); return evMid(0, 1, Math.min((n - v.born) / 3000, (v.end - n) / 3000)); };
+
+  function evWing(x, y, up, col) { ctx.fillStyle = col; ctx.fillRect(Math.round(x) - 1, Math.round(y), 2, 2); ctx.fillRect(Math.round(x) - 5, Math.round(y) + (up ? -2 : 1), 4, 2); ctx.fillRect(Math.round(x) + 1, Math.round(y) + (up ? -2 : 1), 4, 2); }
+  function evSky(v, q, dt, t, S, c, k, f) {
+    const x0 = WXW.x0, x1 = WXW.x1, ww = x1 - x0, y0 = WXW.y0;
+    if (v.n === 'owl') {
+      const x = v.dir > 0 ? x0 - 10 + q * (ww + 20) : x1 + 10 - q * (ww + 20), y = v.y + Math.sin(q * 9) * 5, up = Math.floor(t * 4) % 2, col = evRgb(10, 10, 16, 0.95, 1);
+      ctx.fillStyle = col; ctx.fillRect(Math.round(x) - 3, Math.round(y), 6, 4); ctx.fillRect(Math.round(x) - 2, Math.round(y) - 1, 4, 1);
+      ctx.fillRect(Math.round(x) - 9, Math.round(y) + (up ? -2 : 1), 6, 2); ctx.fillRect(Math.round(x) + 3, Math.round(y) + (up ? -2 : 1), 6, 2);
+    } else if (v.n === 'bats') {
+      v.b.forEach((b, i) => evWing(x0 + ((b.ox + t * 26 * b.sp) % (ww + 40)) - 20, b.y + Math.sin(t * 2.2 * b.sp + b.ph) * 16, Math.floor(t * 9 + i) % 2, evRgb(10, 10, 16, 0.9 * f, 1)));
+    } else if (v.n === 'birds') {
+      v.b.forEach(b => evWing((v.dir > 0 ? x0 - 20 + q * (ww + 60) : x1 + 20 - q * (ww + 60)) + b.dx, b.y + Math.sin(t * 2 + b.ph) * 3, Math.floor(t * 7 + b.ph) % 2, evRgb(36, 40, 52, 0.9, 1)));
+    } else if (v.n === 'geese') {
+      const lx = v.dir > 0 ? x0 - 30 + q * (ww + 80) : x1 + 30 - q * (ww + 80);
+      for (let i = 0; i < 7; i++) { const row = Math.ceil(i / 2), side = i % 2 ? 1 : -1; evWing(lx - v.dir * row * 9, v.y + (i ? side * row * 4 : 0) + Math.sin(t * 1.5 + i) * 1.5, Math.floor(t * 3 + i * 0.5) % 2, evRgb(40, 44, 56, 0.9, 1)); }
+    } else if (v.n === 'butterfly') {
+      v.b.forEach(b => { b.x += (b.vx + Math.sin(t * 1.5 + b.ph) * 12) * dt; if (b.x < x0 + 120) b.vx = Math.abs(b.vx) + 2; if (b.x > x1 - 120) b.vx = -Math.abs(b.vx) - 2; const y = b.y + Math.sin(t * 2 + b.ph) * 14, open = Math.floor(t * 6 + b.ph) % 2; ctx.fillStyle = evRgb(b.col[0], b.col[1], b.col[2], f, 1); ctx.fillRect(Math.round(b.x) - (open ? 3 : 1), Math.round(y), open ? 6 : 2, 3); ctx.fillStyle = evRgb(30, 24, 20, f, 1); ctx.fillRect(Math.round(b.x), Math.round(y), 1, 3); });
+    }
+  }
+  function evGround(v, q, dt, t, S, c, k, f) {
+    const now = Date.now(), dim = 1 - c.fog * 0.6;
+    if (v.n === 'deer') {
+      const walk = q > 0.88, look = !walk && Math.floor(t / 4) % 3 === 2;
+      if (walk) v.x += v.dir * 14 * dt;
+      ctx.globalAlpha = f * dim; evAnimal(v.x, evMeadowY(v.x) + 7, 'deer', v.dir, Math.floor(t * 3) % 2, k, walk ? 'walk' : look ? 'look' : 'graze'); ctx.globalAlpha = 1;
+    } else if (v.n === 'rabbit') {
+      if (v.wait > 0) v.wait -= dt; else { v.x += v.dir * 26 * dt; if (Math.random() < dt * 0.5) v.wait = 0.6 + Math.random() * 1.6; }
+      const hop = v.wait > 0 ? 0 : Math.abs(Math.sin(t * 7)) * 5, x = v.x, y = evMeadowY(x) + 7 - hop, d = v.dir, col = evRgb(150, 124, 98, f * dim, k), lt = evRgb(230, 224, 214, f * dim, k);
+      ctx.fillStyle = col; ctx.fillRect(Math.round(x - 4), Math.round(y - 5), 7, 4); ctx.fillRect(Math.round(x + (d > 0 ? 3 : -6)), Math.round(y - 7), 3, 3); ctx.fillRect(Math.round(x + (d > 0 ? 3 : -5)), Math.round(y - 11), 1, 4); ctx.fillRect(Math.round(x + (d > 0 ? 5 : -7)), Math.round(y - 11), 1, 4);
+      ctx.fillStyle = lt; ctx.fillRect(Math.round(x + (d > 0 ? -6 : 3)), Math.round(y - 4), 2, 2);
+    } else if (v.n === 'fox') {
+      const p = q < 0.45 ? q / 0.9 : q < 0.55 ? 0.5 : 0.5 + (q - 0.55) / 0.9, pause = q > 0.45 && q < 0.55, x = v.dir > 0 ? 170 + p * 300 : 470 - p * 300;
+      ctx.globalAlpha = f * (1 - c.fog * 0.5); evAnimal(x, evMeadowY(x) + 8, 'fox', v.dir, Math.floor(t * 6) % 2, k, pause ? 'look' : 'walk'); ctx.globalAlpha = 1;
+    } else if (v.n === 'hedgehog') {
+      if (v.wait > 0) v.wait -= dt; else { v.x += v.dir * 7 * dt; if (Math.random() < dt * 0.3) v.wait = 1 + Math.random() * 3; }
+      const x = v.x, y = evMeadowY(x) + 8, d = v.dir, a = f * dim;
+      ctx.fillStyle = evRgb(70, 52, 38, a, k); ctx.fillRect(Math.round(x - 5), Math.round(y - 5), 9, 4); ctx.fillRect(Math.round(x - 4), Math.round(y - 6), 7, 1);
+      ctx.fillStyle = evRgb(130, 104, 78, a, k); for (let i = 0; i < 4; i++) ctx.fillRect(Math.round(x - 4 + i * 2), Math.round(y - 6 - (i % 2)), 1, 1);
+      ctx.fillStyle = evRgb(176, 144, 112, a, k); ctx.fillRect(Math.round(x + (d > 0 ? 4 : -7)), Math.round(y - 3), 3, 2);
+    } else if (v.n === 'wisps') {
+      for (let i = 0; i < 6; i++) {
+        const x = 170 + ((i * 59) % 320) + Math.sin(t * 0.5 + i * 1.9) * 22, y = evMeadowY(x) - 4 - ((i * 13) % 22) + Math.sin(t * 0.9 + i * 2.3) * 5, a = f * (0.45 + 0.45 * Math.sin(t * 1.6 + i * 1.3)) * dim;
+        if (a < 0.05) continue;
+        const g = ctx.createRadialGradient(x, y, 0, x, y, 14); g.addColorStop(0, `rgba(150,255,220,${(a * 0.8).toFixed(3)})`); g.addColorStop(1, 'rgba(150,255,220,0)'); ctx.fillStyle = g; ctx.fillRect(x - 14, y - 14, 28, 28);
+        ctx.fillStyle = `rgba(220,255,240,${a.toFixed(3)})`; ctx.fillRect(Math.round(x), Math.round(y), 2, 2);
+      }
+    } else if (v.n === 'lantern') {
+      const x = 160 + q * 300, y = evMeadowY(x) + 6, sway = Math.sin(t * 2.4) * 0.6;
+      ctx.globalAlpha = f; ctx.fillStyle = evRgb(6, 6, 10, 0.95, 1); ctx.fillRect(Math.round(x) - 1, y - 9, 3, 9); ctx.fillRect(Math.round(x) - 2, y - 11, 5, 2); ctx.fillRect(Math.round(x) - 1, y - 12, 3, 1);
+      const lx = Math.round(x + 4 + sway), ly = y - 6, g = ctx.createRadialGradient(lx, ly, 0, lx, ly, 14); g.addColorStop(0, 'rgba(255,200,110,.55)'); g.addColorStop(1, 'rgba(255,200,110,0)'); ctx.fillStyle = g; ctx.fillRect(lx - 14, ly - 14, 28, 28);
+      ctx.fillStyle = 'rgba(255,230,160,.95)'; ctx.fillRect(lx, ly, 2, 2); ctx.globalAlpha = 1;
+    } else if (v.n === 'watcher') {
+      const p = q, fw = evMid(0, 1, Math.min((now - v.born) / 25000, (v.end - now) / 25000)) * dim, x = 392 - p * 70, y = evRidgeY(392) + (evMeadowY(322) + 4 - evRidgeY(392)) * p, s = 1 + p * 0.9;
+      const bx = Math.round(x), by = Math.round(y), h = Math.round(10 * s), bw = Math.max(3, Math.round(3 * s));
+      ctx.globalAlpha = fw; ctx.fillStyle = 'rgba(3,3,6,.97)'; ctx.fillRect(bx - Math.floor(bw / 2), by - h, bw, h); ctx.fillRect(bx - Math.floor(bw / 2) - 1, by - 2, bw + 2, 2); ctx.fillRect(bx - Math.ceil(bw * 0.9), by - h - 1, Math.ceil(bw * 1.8), 1); ctx.fillRect(bx - Math.floor(bw / 2), by - h - 3, bw, 2);
+      const ea = ((t % 7) > 6.85 ? 0 : 1) * (0.8 + 0.2 * Math.sin(t * 2));
+      if (ea > 0.1) { const ey = by - h + 1, g = ctx.createRadialGradient(bx, ey, 0, bx, ey, 10 * s); g.addColorStop(0, `rgba(200,255,180,${(0.6 * ea).toFixed(3)})`); g.addColorStop(1, 'rgba(200,255,180,0)'); ctx.fillStyle = g; ctx.fillRect(bx - 10 * s, ey - 10 * s, 20 * s, 20 * s); ctx.fillStyle = `rgba(235,255,210,${ea.toFixed(3)})`; ctx.fillRect(bx - 2, ey, 2, 2); ctx.fillRect(bx + 1, ey, 2, 2); }
+      ctx.globalAlpha = 1;
+    } else if (v.n === 'cat') {
+      const cx = 470, cy = evRidgeY(470) - 14, a = f, sw = Math.sin(t * 1.3) > 0.4 ? 1 : 0;
+      ctx.globalAlpha = a; ctx.fillStyle = 'rgba(4,4,8,.97)'; ctx.fillRect(cx - 2, cy - 6, 5, 6); ctx.fillRect(cx - 2, cy - 9, 5, 3); ctx.fillRect(cx - 2, cy - 11, 1, 2); ctx.fillRect(cx + 2, cy - 11, 1, 2); ctx.fillRect(cx + 3, cy - 2 - sw, 4, 1); ctx.fillRect(cx + 6, cy - 4 - sw, 1, 3);
+      const ea = (t % 5) > 4.88 ? 0 : 1; if (ea) { ctx.fillStyle = 'rgba(190,255,160,.95)'; ctx.fillRect(cx - 1, cy - 8, 1, 1); ctx.fillRect(cx + 1, cy - 8, 1, 1); const g = ctx.createRadialGradient(cx, cy - 8, 0, cx, cy - 8, 6); g.addColorStop(0, 'rgba(190,255,160,.35)'); g.addColorStop(1, 'rgba(190,255,160,0)'); ctx.fillStyle = g; ctx.fillRect(cx - 6, cy - 14, 12, 12); }
+      ctx.globalAlpha = 1;
+    } else if (v.n === 'dragonfly') {
+      if (now > v.next) { v.next = now + 700 + Math.random() * 1400; v.tx = 215 + Math.random() * 100; v.ty = WXW.y1 - 44 + Math.random() * 22; }
+      v.x += (v.tx - v.x) * Math.min(1, dt * 4); v.y += (v.ty - v.y) * Math.min(1, dt * 4);
+      const fl = Math.floor(t * 30) % 2; ctx.globalAlpha = f; ctx.fillStyle = evRgb(40, 160, 170, 1, k); ctx.fillRect(Math.round(v.x) - 3, Math.round(v.y), 7, 1); ctx.fillStyle = 'rgba(230,246,255,.7)'; ctx.fillRect(Math.round(v.x) - 1, Math.round(v.y) - 1 - fl, 3, 1); ctx.fillRect(Math.round(v.x) - 1, Math.round(v.y) + 1 + fl, 3, 1); ctx.globalAlpha = 1;
+    }
+  }
+  function evFront(v, q, dt, t, S, c, k, f) {
+    const X0 = WXW.x0, X1 = WXW.x1, Y0 = WXW.y0, Y1 = WXW.y1;
+    if (v.n === 'owlTree') {
+      const x = X1 - 58, y = Y0 + 96;
+      if (Math.random() < dt * 0.25) v.eyeOff = Math.floor(Math.random() * 3) - 1;
+      ctx.globalAlpha = f; ctx.fillStyle = evRgb(24, 18, 14, 1, 1); ctx.fillRect(x - 4, y + 1, 14, 2);
+      const body = evRgb(86, 70, 56, 1, k), dk = evRgb(40, 30, 24, 1, k);
+      ctx.fillStyle = body; ctx.fillRect(x - 3, y - 10, 8, 11); ctx.fillRect(x - 3, y - 12, 2, 2); ctx.fillRect(x + 3, y - 12, 2, 2); ctx.fillStyle = dk; ctx.fillRect(x - 2, y - 1, 2, 2); ctx.fillRect(x + 2, y - 1, 2, 2); ctx.fillRect(x - 2, y - 5, 6, 1);
+      const ea = ((t % 6) > 5.85 ? 0.1 : 1);
+      if (ea > 0.5) { ctx.fillStyle = 'rgba(255,212,90,.95)'; ctx.fillRect(x - 2 + v.eyeOff, y - 9, 2, 2); ctx.fillRect(x + 2 + v.eyeOff, y - 9, 2, 2); const g = ctx.createRadialGradient(x + 1, y - 8, 0, x + 1, y - 8, 9); g.addColorStop(0, 'rgba(255,212,90,.35)'); g.addColorStop(1, 'rgba(255,212,90,0)'); ctx.fillStyle = g; ctx.fillRect(x - 9, y - 17, 20, 20); }
+      ctx.globalAlpha = 1;
+    } else if (v.n === 'squirrel') {
+      const edge = v.side < 0 ? X0 + 86 + 12 : X1 - 86 - 12, steps = 8, s = q * steps, fr = s - Math.floor(s), p = (Math.floor(s) + evMid(0, 1, fr * 2.4)) / steps, y = Y1 - 16 - p * (Y1 - Y0 - 90), x = edge + (v.side < 0 ? 0 : -3);
+      ctx.globalAlpha = f; ctx.fillStyle = evRgb(150, 82, 40, 1, k); ctx.fillRect(Math.round(x), Math.round(y), 3, 6); ctx.fillRect(Math.round(x), Math.round(y) - 3, 3, 3); ctx.fillRect(Math.round(x) + (v.side < 0 ? 3 : -3), Math.round(y) - 2, 3, 7);
+      ctx.fillStyle = evRgb(235, 220, 200, 1, k); ctx.fillRect(Math.round(x), Math.round(y) + 2, 1, 3); ctx.globalAlpha = 1;
+    } else if (v.n === 'moth') {
+      const open = 0.5 + 0.5 * Math.sin(t * 1.3 + v.ph), w = 2 + Math.round(open * 4), x = Math.round(v.x), y = Math.round(v.y);
+      ctx.globalAlpha = f; const g = ctx.createRadialGradient(x, y + 2, 0, x, y + 2, 14); g.addColorStop(0, 'rgba(255,240,200,.2)'); g.addColorStop(1, 'rgba(255,240,200,0)'); ctx.fillStyle = g; ctx.fillRect(x - 14, y - 12, 28, 28);
+      ctx.fillStyle = 'rgba(236,224,196,.95)'; ctx.fillRect(x - w, y, w, 5); ctx.fillRect(x + 1, y, w, 5); ctx.fillStyle = 'rgba(150,130,100,.9)'; ctx.fillRect(x - 1, y - 1, 2, 7); ctx.fillStyle = 'rgba(140,120,96,.8)'; ctx.fillRect(x - w + 1, y + 1, 1, 2); ctx.fillRect(x + w - 1, y + 1, 1, 2); ctx.globalAlpha = 1;
+    }
+  }
+
+  function evVisLayer(layer, dt, t, S, c) {
+    const now = Date.now(), k = evTone();
+    for (const v of EV.vis) { if (VIS[v.n].L !== layer) continue; const q = evMid(0, 1, (now - v.born) / (v.end - v.born)), f = evFadeV(v); ((typeof EV2D !== 'undefined' && EV2D[v.n]) || (layer === 'sky' ? evSky : layer === 'ground' ? evGround : evFront))(v, q, dt, t, S, c, k, f); }
+  }
+  function eventsSky(dt, t, S, c, night) {
+    const x0 = WXW.x0, x1 = WXW.x1, y0 = WXW.y0, ww = x1 - x0, now = Date.now();
+    evDirector(dt, S, c);
+    // rainbow after rain
+    const wk = (typeof wxNow === 'function' ? wxNow().k : 'clear');
+    if (['drizzle', 'rain', 'storm'].includes(wk)) { EV.rain = now; if (state) state.rainAt = now; }
+    if (c.snow > 0.4 && state) state.snowAt = now;
+    if (!EV.rb && (EV.force.rainbow || (['clear', 'partly'].includes(wk) && S.alt > 0.12 && EV.rain && now - EV.rain < 40 * 60000 && !EV.rbDone && mulberry(hashStr('rb:' + dateKey()))() < 0.2)) && c.cloud < 0.7) { EV.rb = { a: now, b: now + 18 * 60000, dbl: mulberry(hashStr('rb2:' + dateKey()))() < 0.2 }; EV.rbDone = true; }
+    if (EV.rb) {
+      const f = evMid(0, 1, Math.min((now - EV.rb.a) / 25000, (EV.rb.b - now) / 25000)) * (1 - c.cloud * 0.7);
+      if (now > EV.rb.b || (S.alt < 0.04 && !EV.force.rainbow)) { EV.rb = null; EV.force.rainbow = false; }
+      else if (f > 0.02) {
+        evLog('rainbow', dateKey());
+        const cx = x0 + ww * (0.28 + 0.44 * (1 - clamp(S.sunU, 0, 1))), cy = WXW.y1 + 96, cols = ['255,80,80', '255,170,70', '255,236,100', '120,220,110', '90,180,255', '110,110,240', '170,100,220'];
+        ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, ww, WXW.y1 - y0 - 30); ctx.clip();
+        for (let k = 0; k < (EV.rb.dbl ? 2 : 1); k++) { const base = 220 + k * 40, a = (k ? 0.12 : 0.26) * f; cols.forEach((col, i) => { ctx.strokeStyle = `rgba(${col},${a.toFixed(3)})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx, cy, base - (k ? -i : i) * 3, Math.PI * 1.08, Math.PI * 1.92); ctx.stroke(); }); }
+        ctx.restore();
+      }
+    }
+    // aurora
+    const au = evWin('aurora', S);
+    if (au) {
+      evLog('aurora');
+      const f = evFade(au, 60) * (1 - c.cloud * 0.6), cols = ['70,255,170', '80,210,255', '170,110,255'];
+      for (let k = 0; k < 3; k++) for (let X = x0; X < x1; X += 6) {
+        const yc = y0 + 34 + k * 14 + Math.sin(X * 0.012 + t * 0.25 + k * 2) * 14 + Math.sin(X * 0.031 - t * 0.4) * 5, a0 = 0.3 * f * (0.55 + 0.45 * Math.sin(X * 0.05 + t * 0.7 + k));
+        for (let s = 0; s < 5; s++) { ctx.fillStyle = `rgba(${cols[k]},${(a0 * (1 - s / 5)).toFixed(3)})`; ctx.fillRect(X, Math.round(yc + s * 8), 6, 8); }
+      }
+    }
+    // comet
+    const cm = evPlanNow().comet;
+    if ((cm || EV.force.comet) && S.alt < -0.08) {
+      evLog('comet');
+      const i = cm ? cm.day : 3, ph = cm ? cm.ph : 0.4, hx = x0 + 90 + i * ((ww - 180) / 6), hy = y0 + 26 + ph * 30 + i * 4, a = 1 - c.cloud * 0.8;
+      for (let s = 0; s < 14; s++) { ctx.fillStyle = `rgba(190,225,255,${(a * 0.45 * (1 - s / 14)).toFixed(3)})`; ctx.fillRect(Math.round(hx - s * 5), Math.round(hy - s * 1.6), 3 + (s < 4 ? 1 : 0), 2); ctx.fillRect(Math.round(hx - s * 5 - 2), Math.round(hy - s * 1.6 + 4), 2, 1); }
+      const g = ctx.createRadialGradient(hx, hy, 0, hx, hy, 10); g.addColorStop(0, `rgba(220,240,255,${(0.7 * a).toFixed(3)})`); g.addColorStop(1, 'rgba(220,240,255,0)'); ctx.fillStyle = g; ctx.fillRect(hx - 10, hy - 10, 20, 20);
+      ctx.fillStyle = `rgba(255,255,255,${a.toFixed(3)})`; ctx.fillRect(Math.round(hx) - 1, Math.round(hy) - 1, 3, 3);
+    }
+    // meteor shower
+    const sh = evWin('shower', S);
+    if (sh) {
+      if (sh.name && EV_NAME.shower[0] !== sh.name) EV_NAME.shower[0] = sh.name;
+      evLog('shower');
+      if (now > EV.nextShot) { EV.nextShot = now + (sh.heavy ? 500 : 900) + Math.random() * (sh.heavy ? 1800 : 3200); const dir = Math.random() < 0.5 ? -1 : 1; EV.shots.push({ x: x0 + 60 + Math.random() * (ww - 120), y: y0 + 6 + Math.random() * 60, vx: dir * (110 + Math.random() * 70), vy: 50 + Math.random() * 40, age: 0 }); }
+    }
+    EV.shots = EV.shots.filter(s => (s.age += dt) < 0.95);
+    for (const s of EV.shots) for (let i = 0; i < 12; i++) { const f = Math.max(0, s.age - i * 0.03); ctx.fillStyle = `rgba(${i < 3 ? '255,255,255' : '190,208,255'},${(Math.max(0, 1 - i / 12) * Math.max(0, 1 - s.age / 0.95) * (1 - c.cloud * 0.9)).toFixed(3)})`; ctx.fillRect(Math.round(s.x + s.vx * f), Math.round(s.y + s.vy * f), i < 2 ? 4 : 2, 2); }
+    ev2Sky(dt, t, S, c);
+    evVisLayer('sky', dt, t, S, c);
+  }
+  function eventsGround(dt, t, S, c, night) {
+    const sol = evWin('solstice', S);
+    if (sol || EV.force.solstice) {
+      evLog('solstice');
+      for (let x = 150; x < 495; x += 15) { const y = evRidgeY(x) - 1, a = 0.55 + 0.45 * Math.sin(t * 3 + x); ctx.fillStyle = `rgba(255,190,100,${(0.18 * a).toFixed(3)})`; ctx.fillRect(x - 3, y - 3, 7, 7); ctx.fillStyle = `rgba(255,220,150,${a.toFixed(3)})`; ctx.fillRect(x, y, 2, 2); }
+    }
+    ev2Ground(dt, t, S, c);
+    evVisLayer('ground', dt, t, S, c);
+  }
+  function eventsFront(dt, t, S, c, night) {
+    const x0 = WXW.x0, x1 = WXW.x1, y0 = WXW.y0, y1 = WXW.y1, ww = x1 - x0, hh = y1 - y0, now = Date.now(), sea = wdSeason();
+    evVisLayer('front', dt, t, S, c);
+    ev2Front(dt, t, S, c);
+    // snow piling on the window frame
+    EV.snowCap = evMid(0, 1, EV.snowCap + (c.snow > 0.3 ? dt / 90 : -dt / 900));
+    if (EV.force.snowcap) EV.snowCap = 1;
+    if (EV.snowCap > 0.05) { if (EV.snowCap > 0.5) evLog('snowcap', dateKey()); const h = Math.max(2, Math.round(4 * EV.snowCap)); ctx.fillStyle = 'rgba(244,248,252,.95)'; ctx.fillRect(x0, y0 + 78 - h, ww, h); ctx.fillRect(x0, y1 - 4 - h, ww, h); ctx.fillStyle = 'rgba(200,214,230,.9)'; ctx.fillRect(x0, y0 + 78 - 1, ww, 1); }
+    // hail in a storm
+    if (!EV.hail && c.storm > 0.6 && now > EV.hailAt && Math.random() < dt / 50) { EV.hail = { end: now + 7000 }; EV.hailAt = now + 60000; }
+    if (EV.force.hail && !EV.hail) EV.hail = { end: now + 7000 };
+    if (EV.hail) {
+      if (now > EV.hail.end) { EV.hail = null; EV.force.hail = false; }
+      else {
+        evLog('hail', String(Math.floor(now / 600000)));
+        for (let i = 0; i < 46; i++) { const x = x0 + ((i * 53 + t * 40) % ww), y = y0 + ((t * 230 + i * 37) % (hh - 8)); ctx.fillStyle = 'rgba(244,248,255,.85)'; ctx.fillRect(Math.round(x), Math.round(y), 2, 3); if (y > hh * 0.9 + y0 - 10) { ctx.fillStyle = 'rgba(244,248,255,.5)'; ctx.fillRect(Math.round(x) + 3, Math.round(y) - 3, 1, 1); } }
+      }
+    }
+    // windstorm leaves
+    if ((c.wind > 0.7 && c.rain < 0.6) || EV.force.windstorm) {
+      evLog('windstorm', String(Math.floor(now / 1200000)));
+      const cols = sea === 'autumn' ? ['rgba(210,110,30,.9)', 'rgba(176,60,34,.9)', 'rgba(224,170,50,.9)'] : sea === 'spring' ? ['rgba(250,206,222,.9)', 'rgba(250,250,240,.9)'] : sea === 'winter' ? ['rgba(244,248,252,.9)'] : ['rgba(76,140,64,.9)', 'rgba(110,160,70,.9)'];
+      for (let i = 0; i < 22; i++) { const x = x0 + (((i * 89 + t * 150) % (ww + 40)) - 20), y = y0 + 20 + ((i * 47) % (hh - 40)) + Math.sin(t * 4 + i) * 10; ctx.fillStyle = cols[i % cols.length]; ctx.fillRect(Math.round(x / 2) * 2, Math.round(y / 2) * 2, 3, 2); }
+    }
+    // frost ferns on the glass
+    if ((sea === 'winter' && S.alt < 0.15 && c.rain < 0.2 && c.snow < 0.2) || EV.force.frost) {
+      if (!EV.frost) { const r = mulberry(31337), pts = []; [[x0 + 4, y1 - 6, 1, -1], [x0 + 190, y1 - 6, -1, -1], [x0 + 200, y1 - 6, 1, -1], [x0 + 372, y1 - 6, -1, -1], [x0 + 384, y1 - 6, 1, -1], [x1 - 4, y1 - 6, -1, -1], [x0 + 4, y0 + 86, 1, 1], [x1 - 4, y0 + 86, -1, 1], [x0 + 190, y0 + 86, -1, 1], [x0 + 384, y0 + 86, 1, 1]].forEach(([sx, sy, dx, dy]) => { for (let b = 0; b < 5; b++) { let x = sx, y = sy, ang = (b - 2) * 0.35; for (let s = 0; s < 22 + r() * 16; s++) { x += dx * Math.cos(ang) * 2.4; y += dy * (1 + Math.sin(ang) * 0.6) * 2.4; pts.push([x, y, 1]); if (s % 3 === 0) { pts.push([x + dx * 2, y + dy * -2 * (r() < 0.5 ? 1 : -1), 0]); } ang += (r() - 0.5) * 0.25; } } }); EV.frost = pts; }
+      evLog('frost', dateKey());
+      ctx.fillStyle = `rgba(236,246,255,${(0.22 + 0.2 * clamp(-S.alt * 3, 0, 1)).toFixed(3)})`;
+      for (const p of EV.frost) ctx.fillRect(Math.round(p[0] / 2) * 2, Math.round(p[1] / 2) * 2, 2, 2);
+    }
+  }
+  { const _ds = drawSkyTint; drawSkyTint = function (t) { _ds(t); const S = WXS && WXS.ready ? WXS : skyNow(); if (evBlood(S)) { ctx.fillStyle = 'rgba(120,16,16,.1)'; ctx.fillRect(22, 63, 598, 250); } }; }
+  // ======================================================================
+  // 9u. More outside: a second wave of visitors, odd things in the dark,
+  //     sky events, weather moods and slow changes to the landscape.
+  // ======================================================================
+  const EV2D = {}, EV2I = {};
+  const ev2Sounds = { owl: 'hoot', owlTree: 'hoot', wolf: 'howl', frog: 'croak', woodpecker: 'woodtap', hawk: 'screech', crows: 'caw', ducks: 'quack', bee: 'buzz', mouse: 'squeak', robin: 'bird', whisper: 'musicbox', dawnchorus: 'dawnsong', stag: null };
+  function evSound(name, v) { const snd = ev2Sounds[name]; if (snd && Sfx && Sfx.play && scene === 'terrarium') Sfx.play(snd, 0); }
+  const R2 = (c, x, y, w, h, col) => { c.fillStyle = col; c.fillRect(Math.round(x), Math.round(y), w, h); };
+  const rnd2 = (a, b) => a + Math.random() * (b - a);
+
+  Object.assign(EV_NAME, {
+    stag: ['Stag', 'A stag with great antlers stands at the edge of the meadow.'], doefawn: ['Doe and fawn', 'A doe and her fawn are grazing together.'], hawk: ['Hawk', 'A hawk is circling high above the hills.'], crows: ['Crows', 'Crows are gathered on the far fence.'],
+    woodpecker: ['Woodpecker', 'A woodpecker is tapping at the nearest tree.'], robin: ['Robin', 'A robin has hopped onto the window sill.'], heron: ['Heron', 'A heron is standing very still at the lake.'], ducks: ['Ducks', 'Ducks are paddling across the lake.'],
+    frog: ['Frog', 'A frog is croaking at the edge of the lake.'], badger: ['Badger', 'A badger is snuffling along the treeline.'], mouse: ['Mouse', 'A mouse is scurrying along the sill.'], bee: ['Bumblebee', 'A bumblebee zigzags past the glass.'],
+    ladybird: ['Ladybird', 'A ladybird is crawling up the glass.'], snail: ['Snail', 'A snail is inching across the sill.'], spider: ['Spider', 'A spider is dangling on a silk thread.'], caterpillar: ['Caterpillar', 'A caterpillar is crawling along a branch.'],
+    dragonswarm: ['Dragonflies', 'Dragonflies are darting over the lake at dusk.'], glowworms: ['Glow-worms', 'Glow-worms shine in the grass beneath the trees.'], wolf: ['Wolf', 'A lone wolf is howling on the far ridge.'],
+    skylantern: ['Paper lantern', 'A paper lantern drifts up into the night.'], balloon: ['Hot-air balloon', 'A hot-air balloon drifts across the dawn sky.'], kite: ['Kite', 'Someone is flying a kite on the wind.'], campfire: ['Campfire', 'A campfire glows on the far hill.'],
+    litwindow: ['A far-off light', 'A lit window has appeared in the distance where there was none.'], extratree: ['A new tree', 'There is a tree on the ridge that was not there before.'], scarecrow: ['Scarecrow', 'The scarecrow in the far field has turned to face you.'],
+    eyes: ['Eyes in the grass', 'Pairs of eyes are blinking in the dark grass.'], ghostdeer: ['Ghost deer', 'A pale deer walks across the meadow and fades.'], fogfigure: ['Figure in the fog', 'A tall pale figure sways in the mist.'],
+    watcherPeek: ['The Watcher, close', 'One glowing eye watches from behind the near tree.'], cabinflicker: ['Cabin light', 'The cabin light flickers, and a shadow crosses the window.'], moonface: ['Man in the moon', 'The moon has a face tonight.'],
+    fireshape: ['Firefly shape', 'The fireflies have gathered into a shape.'], whisper: ['Far-off music', 'A faint music box tune drifts from the woods.'], dawnchorus: ['Dawn chorus', 'The birds are singing the sun up.'],
+    cabinperson: ['Cabin door', 'Someone has stepped out of the cabin.'], batglass: ['Bat on the glass', 'A bat has landed on the window and hangs there.'], wishstar: ['Wishing star', 'One very bright shooting star crosses the sky.'],
+    supermoon: ['Supermoon', 'The moon is bigger and brighter than usual.'], bluemoon: ['Blue Moon', 'The second full moon of the month, with a cool blue light.'], planets: ['Planets in a row', 'Bright planets are lined up near the horizon.'],
+    nocti: ['Glowing clouds', 'Electric-blue clouds are glowing high in the twilight.'], zodiac: ['Zodiacal light', 'A pale cone of light rises before dawn.'], sundogs: ['Sundogs', 'Bright halos flank the low sun.'], greenflash: ['Green flash', 'The setting sun flashes green for an instant.'],
+    mammatus: ['Storm clouds', 'Strange lumpy clouds hang under the storm.'], equinox: ['Equinox dawn', 'The sun rises exactly in the east.'], fogmorn: ['Fog morning', 'The woods are lost in a thick white fog.'], sunshower: ['Sun shower', 'It is raining in the sunshine.'], dew: ['Morning dew', 'Every web and blade of grass is sparkling with dew.'],
+    lakemist: ['Mist on the lake', 'Mist is rising off the lake.'], heat: ['Heat shimmer', 'The distance wobbles in the heat.'], shafts: ['Light shafts', 'Sunbeams slant down through the canopy.'], puddles: ['Puddles', 'The meadow is dotted with puddles after the rain.'],
+    thunderhead: ['Thunderheads', 'Huge storm clouds tower on the horizon.'], mushrooms: ['Mushrooms', 'Mushrooms have popped up beneath the trees after the rain.'], web: ['Spider web', 'A spider has spun a web in the window corner.'], rime: ['Rime frost', 'The branches are furred with white frost.'],
+    washing: ['Washing line', 'Washing is flapping on the line by the cabin.'], firstsnow: ['First snow', 'The first snow of the year is falling.'], firstblossom: ['First blossom', 'The first blossom of spring has opened.'], firstleaf: ['First turning leaves', 'The first leaves are turning.'],
+  });
+  const ADD = (name, L, w, dur, init, draw) => { VIS[name] = { w, dur, L }; if (init) EV2I[name] = init; if (draw) EV2D[name] = draw; };
+  const LAKE = { x: 262, y: WXW.y1 - 10 };
+
+  // ---------------- animals ----------------
+  ADD('hawk', 'ground', x => (x.day && !x.wet ? 0.5 : 0), [24, 24], v => { v.y = WXW.y0 + 40 + Math.random() * 30; }, (v, q, dt, t, S, c, k, f) => {
+    const x = v.dir > 0 ? WXW.x0 - 20 + q * (WXW.x1 - WXW.x0 + 40) : WXW.x1 + 20 - q * (WXW.x1 - WXW.x0 + 40), y = v.y + Math.sin(q * 5) * 14, flap = Math.floor(t * 1.6) % 6 === 0 ? 2 : 0, col = evRgb(30, 24, 20, 0.95, k);
+    R2(ctx, x - 7, y + 1 - flap, 6, 2, col); R2(ctx, x + 1, y + 1 - flap, 6, 2, col); R2(ctx, x - 2, y, 4, 3, col); R2(ctx, x + (v.dir > 0 ? 2 : -4), y - 1, 2, 2, col);
+    const sx = x * 0.9 + 32, sy = evMeadowY(x) + 5; ctx.fillStyle = 'rgba(0,0,0,.16)'; ctx.beginPath(); ctx.ellipse(sx, sy, 9, 1.8, 0, 0, 7); ctx.fill();
+  });
+  ADD('crows', 'ground', x => (x.day || x.twi ? 0.5 * (x.sea === 'winter' || x.sea === 'autumn' ? 1.6 : 0.7) * (x.wet ? 0 : 1) : 0), [30, 30], v => { v.c = Array.from({ length: 4 }, (_, i) => ({ x: 342 + i * 18 + Math.random() * 6, dy: Math.random() * 3, go: 0.62 + Math.random() * 0.18, vy: 0 })); v.cawed = 0; }, (v, q, dt, t, S, c, k, f) => {
+    v.c.forEach(b => { const fly = q > b.go; let x = b.x, y = evMeadowY(b.x) - 7 + b.dy; if (fly) { const u = (q - b.go) * 30; x += u * 5 * (b.x % 2 ? 1 : -1) * 0.8; y -= u * 3.2; if (!v.cawed) { v.cawed = 1; Sfx && Sfx.play && Sfx.play('caw', 0); } evWing(x, y, Math.floor(t * 9) % 2, evRgb(8, 8, 12, f * (1 - (q - b.go) * 2.2 > 0 ? 1 : 0), 1)); } else { const col = evRgb(10, 10, 14, f, 1); R2(ctx, x - 2, y, 5, 4, col); R2(ctx, x + 2, y - 1, 3, 2, col); R2(ctx, x + 4, y, 2, 1, evRgb(60, 50, 30, f, 1)); } });
+  });
+  ADD('woodpecker', 'front', x => (x.day && !x.wet && x.sea !== 'winter' ? 0.45 : 0), [18, 18], v => { v.tap = 0; }, (v, q, dt, t, S, c, k, f) => {
+    const x = WXW.x0 + 88, y = WXW.y0 + 100 + Math.sin(q * 6) * 6, burst = Math.floor(t * 1.5) % 3 === 0, bob = burst && Math.floor(t * 18) % 2 ? 2 : 0;
+    if (burst && Math.floor(t * 18) % 18 === 0 && Date.now() - v.tap > 1200) { v.tap = Date.now(); Sfx && Sfx.play && Sfx.play('woodtap', -0.5); }
+    ctx.globalAlpha = f; R2(ctx, x, y, 3, 7, evRgb(20, 20, 24, 1, k)); R2(ctx, x + 1, y + 1, 1, 4, evRgb(236, 236, 226, 1, k)); R2(ctx, x + 3 + bob, y - 1, 3, 3, evRgb(20, 20, 24, 1, k)); R2(ctx, x + 3 + bob, y - 2, 2, 1, evRgb(210, 40, 40, 1, k)); R2(ctx, x + 6 + bob, y, 3, 1, evRgb(60, 50, 40, 1, k)); ctx.globalAlpha = 1;
+  });
+  ADD('robin', 'front', x => (!x.wet && (x.day || x.twi) ? 0.6 : 0), [20, 20], v => { v.x = WXW.x0 + 150 + Math.random() * 260; v.hop = 0; }, (v, q, dt, t, S, c, k, f) => {
+    if (q < 0.85 && Math.random() < dt * 1.2) v.x += (Math.random() - 0.5) * 18;
+    const up = q > 0.88 ? (q - 0.88) * 400 : 0, x = v.x + (q > 0.88 ? (q - 0.88) * 300 : 0), y = WXW.y1 - 9 - up - (Math.floor(t * 4) % 5 === 0 ? 2 : 0);
+    ctx.globalAlpha = f * (q > 0.97 ? 0 : 1); R2(ctx, x - 3, y - 4, 7, 4, evRgb(120, 92, 66, 1, k)); R2(ctx, x + 2, y - 7, 4, 4, evRgb(120, 92, 66, 1, k)); R2(ctx, x + 3, y - 4, 3, 3, evRgb(220, 96, 44, 1, k)); R2(ctx, x + 6, y - 6, 2, 1, evRgb(220, 180, 80, 1, k)); R2(ctx, x - 6, y - 3, 3, 1, evRgb(100, 76, 56, 1, k)); R2(ctx, x - 1, y, 1, 2, evRgb(60, 40, 30, 1, k)); R2(ctx, x + 2, y, 1, 2, evRgb(60, 40, 30, 1, k)); ctx.globalAlpha = 1;
+  });
+  ADD('heron', 'ground', x => (!x.wet && (x.twi ? 0.5 : x.day ? 0.25 : 0) * (x.sea === 'winter' ? 0.3 : 1)), [90, 90], null, (v, q, dt, t, S, c, k, f) => {
+    const x = 304, y = LAKE.y + 2, col = evRgb(110, 124, 140, 1, k), lt = evRgb(220, 226, 232, 1, k), fly = q > 0.93, u = fly ? (q - 0.93) * 14 * 30 : 0, bob = Math.floor(t * 0.4) % 5 === 0 ? 3 : 0;
+    ctx.globalAlpha = f * (q > 0.99 ? 0 : 1);
+    if (!fly) { R2(ctx, x, y - 12, 1, 12, evRgb(60, 52, 40, 1, k)); R2(ctx, x - 2, y - 20, 6, 8, col); R2(ctx, x + 1, y - 26 + bob, 2, 6, col); R2(ctx, x + 1, y - 28 + bob, 4, 2, lt); R2(ctx, x + 4, y - 27 + bob, 5, 1, evRgb(210, 170, 60, 1, k)); R2(ctx, x - 4, y - 18, 3, 3, col); }
+    else { evWing(x + u, y - 22 - u * 0.6, Math.floor(t * 4) % 2, col); R2(ctx, x + u - 8, y - 22 - u * 0.6, 3, 1, evRgb(110, 124, 140, 1, k)); }
+    ctx.globalAlpha = 1;
+  });
+  ADD('ducks', 'ground', x => (!x.wet && x.day ? 0.5 : x.twi ? 0.25 : 0), [60, 60], v => { v.p = Math.random() * 6; v.spring = wdSeason() === 'spring' || wdSeason() === 'summer'; }, (v, q, dt, t, S, c, k, f) => {
+    const hx = LAKE.x + Math.sin(t * 0.18 + v.p) * 34, hy = LAKE.y - 1 + Math.sin(t * 0.3 + v.p) * 1.5;
+    for (let i = 0; i < 2; i++) { const x = hx - i * 12, y = hy + (i ? 1 : 0); ctx.globalAlpha = f; R2(ctx, x - 3, y - 2, 7, 3, evRgb(i ? 126 : 100, i ? 94 : 76, i ? 62 : 52, 1, k)); R2(ctx, x + 3, y - 5, 3, 3, evRgb(i ? 126 : 20, i ? 94 : 100, i ? 62 : 64, 1, k)); R2(ctx, x + 6, y - 4, 2, 1, evRgb(230, 170, 50, 1, k)); ctx.fillStyle = 'rgba(230,240,250,.3)'; ctx.fillRect(Math.round(x - 6), Math.round(y + 1), 14, 1); ctx.globalAlpha = 1; }
+    if (v.spring) for (let i = 0; i < 3; i++) { const x = hx - 26 - i * 5, y = hy + Math.sin(t + i) * 0.6; ctx.globalAlpha = f; R2(ctx, x, y - 1, 3, 2, evRgb(230, 210, 120, 1, k)); R2(ctx, x + 2, y - 2, 1, 1, evRgb(220, 190, 90, 1, k)); ctx.globalAlpha = 1; }
+  });
+  ADD('frog', 'ground', x => (x.sea !== 'winter' && !x.wet && (x.night || x.twi) ? 0.45 : x.sea !== 'winter' && x.rainRecent ? 0.4 : 0), [40, 40], null, (v, q, dt, t, S, c, k, f) => {
+    const x = 226, y = LAKE.y + 3, puff = (t % 4) < 0.9 ? 1 : 0; if (puff && Math.floor((t % 4) * 10) === 1 && Date.now() - (v.c || 0) > 2500) { v.c = Date.now(); Sfx && Sfx.play && Sfx.play('croak', -0.3); }
+    ctx.globalAlpha = f; R2(ctx, x, y - 3, 5, 3, evRgb(60, 120, 50, 1, k)); R2(ctx, x + 3, y - 5, 3, 2, evRgb(60, 120, 50, 1, k)); R2(ctx, x + 4, y - 6, 1, 1, evRgb(240, 240, 120, 1, 1)); if (puff) R2(ctx, x + 4, y - 2, 3, 2, evRgb(220, 226, 190, 1, k)); R2(ctx, x - 1, y, 2, 1, evRgb(50, 100, 44, 1, k)); ctx.globalAlpha = 1;
+  });
+  ADD('badger', 'ground', x => (!x.wet && x.night ? 0.4 : 0), [60, 60], null, (v, q, dt, t, S, c, k, f) => {
+    const x = v.dir > 0 ? 150 + q * 340 : 490 - q * 340, y = evMeadowY(x) + 8, d = v.dir, step = Math.floor(t * 5) % 2; ctx.globalAlpha = f * (1 - c.fog * 0.5);
+    const body = evRgb(110, 110, 116, 1, k), dk = evRgb(18, 18, 22, 1, k), lt = evRgb(230, 230, 232, 1, k);
+    R2(ctx, x - 7, y - 6, 12, 4, body); R2(ctx, x + (d > 0 ? 5 : -9), y - 6, 4, 4, lt); R2(ctx, x + (d > 0 ? 6 : -8), y - 6, 2, 1, dk); R2(ctx, x + (d > 0 ? 5 : -9), y - 5, 4, 1, dk);
+    R2(ctx, x - 6, y - 2, 2, 2 - step * 1, dk); R2(ctx, x - 2, y - 2, 2, 1 + step, dk); R2(ctx, x + 1, y - 2, 2, 2 - step, dk); R2(ctx, x + 3, y - 2, 2, 1 + step, dk); ctx.globalAlpha = 1;
+  });
+  ADD('stag', 'ground', x => (!x.wet && x.twi ? 0.14 : 0), [150, 240], v => { v.x = 190 + Math.random() * 90; }, (v, q, dt, t, S, c, k, f) => {
+    const walk = q > 0.9; if (walk) v.x += v.dir * 12 * dt; const y = evMeadowY(v.x) + 7; ctx.globalAlpha = f * (1 - c.fog * 0.6);
+    evAnimal(v.x, y, 'deer', 1, Math.floor(t * 3) % 2, k, walk ? 'walk' : Math.floor(t / 5) % 3 === 2 ? 'look' : 'look');
+    const col = evRgb(60, 44, 32, 1, k); R2(ctx, v.x + 2, y - 31, 1, 6, col); R2(ctx, v.x - 1, y - 33, 3, 1, col); R2(ctx, v.x - 1, y - 36, 1, 3, col); R2(ctx, v.x + 10, y - 31, 1, 6, col); R2(ctx, v.x + 12, y - 33, 3, 1, col); R2(ctx, v.x + 14, y - 36, 1, 3, col); R2(ctx, v.x + 4, y - 34, 1, 3, col); R2(ctx, v.x + 8, y - 34, 1, 3, col);
+    ctx.globalAlpha = 1;
+  });
+  ADD('doefawn', 'ground', x => (!x.wet && x.sea !== 'winter' && x.sea !== 'autumn' && (x.twi ? 0.45 : x.day ? 0.15 : 0)), [140, 220], v => { v.x = 200 + Math.random() * 100; }, (v, q, dt, t, S, c, k, f) => {
+    const walk = q > 0.9; if (walk) v.x += v.dir * 12 * dt; const y = evMeadowY(v.x) + 7; ctx.globalAlpha = f * (1 - c.fog * 0.6);
+    evAnimal(v.x, y, 'deer', 1, Math.floor(t * 3) % 2, k, walk ? 'walk' : Math.floor(t / 4) % 3 === 2 ? 'look' : 'graze');
+    const fx = v.x - 22, body = evRgb(150, 108, 70, 1, k), dk = evRgb(52, 36, 26, 1, k), sp = evRgb(236, 220, 190, 1, k);
+    R2(ctx, fx, y - 8, 7, 4, body); R2(ctx, fx + 1, y - 7, 1, 1, sp); R2(ctx, fx + 4, y - 7, 1, 1, sp); R2(ctx, fx, y - 4, 1, 4, dk); R2(ctx, fx + 2, y - 4, 1, 4, dk); R2(ctx, fx + 4, y - 4, 1, 4, dk); R2(ctx, fx + 6, y - 4, 1, 4, dk); R2(ctx, fx + 7, y - 6, 3, 3, body); R2(ctx, fx + 9, y - 5, 2, 1, dk);
+    ctx.globalAlpha = 1;
+  });
+  ADD('mouse', 'front', x => (x.night || x.twi ? 0.45 : 0), [10, 10], null, (v, q, dt, t, S, c, k, f) => {
+    const x = v.dir > 0 ? WXW.x0 + 120 + q * 300 : WXW.x1 - 120 - q * 300, y = WXW.y1 - 5, d = v.dir, step = Math.floor(t * 14) % 2;
+    ctx.globalAlpha = f; R2(ctx, x - 2, y - 3, 5, 3, evRgb(110, 100, 94, 1, k)); R2(ctx, x + (d > 0 ? 3 : -4), y - 3, 2, 2, evRgb(110, 100, 94, 1, k)); R2(ctx, x + (d > 0 ? -7 : 4), y - 1 - step, 5, 1, evRgb(210, 150, 150, 1, k)); R2(ctx, x - 1, y, 1, 1, evRgb(60, 50, 44, 1, k)); ctx.globalAlpha = 1;
+  });
+  ADD('bee', 'front', x => (x.day && !x.wet && (x.sea === 'spring' || x.sea === 'summer') ? 0.55 : 0), [12, 12], v => { v.y = WXW.y0 + 90 + Math.random() * 90; }, (v, q, dt, t, S, c, k, f) => {
+    const x = v.dir > 0 ? WXW.x0 - 10 + q * (WXW.x1 - WXW.x0 + 20) : WXW.x1 + 10 - q * (WXW.x1 - WXW.x0 + 20), y = v.y + Math.sin(t * 6) * 8 + Math.sin(t * 2.2) * 12;
+    R2(ctx, x - 2, y, 4, 3, evRgb(240, 200, 40, f, 1)); R2(ctx, x - 1, y, 1, 3, evRgb(20, 20, 20, f, 1)); R2(ctx, x + 1, y, 1, 3, evRgb(20, 20, 20, f, 1)); ctx.fillStyle = 'rgba(230,240,255,.7)'; ctx.fillRect(Math.round(x) - 2, Math.round(y) - 2 - (Math.floor(t * 40) % 2), 3, 1);
+  });
+  ADD('ladybird', 'front', x => (x.day && !x.wet && x.sea !== 'winter' ? 0.4 : 0), [25, 25], v => { v.x = WXW.x0 + 140 + Math.random() * 300; }, (v, q, dt, t, S, c, k, f) => {
+    const y = WXW.y1 - 12 - q * 110, x = v.x + Math.sin(q * 14) * 4; R2(ctx, x - 2, y, 4, 4, evRgb(210, 40, 34, f, 1)); R2(ctx, x - 1, y, 2, 1, evRgb(20, 20, 20, f, 1)); R2(ctx, x - 1, y + 2, 1, 1, evRgb(20, 20, 20, f, 1)); R2(ctx, x + 1, y + 2, 1, 1, evRgb(20, 20, 20, f, 1));
+  });
+  ADD('snail', 'front', x => (!x.night && !x.twi ? 0 : 0) + (x.sea !== 'winter' ? (x.rainRecent ? 0.7 : 0.15) : 0), [60, 60], v => { v.x = WXW.x0 + 150 + Math.random() * 100; }, (v, q, dt, t, S, c, k, f) => {
+    const x = v.x + q * 90, y = WXW.y1 - 5; ctx.globalAlpha = f; ctx.fillStyle = 'rgba(220,230,240,.35)'; ctx.fillRect(Math.round(v.x), y, Math.round(q * 90), 1); R2(ctx, x - 3, y - 1, 6, 1, evRgb(170, 150, 110, 1, k)); R2(ctx, x - 2, y - 5, 4, 4, evRgb(130, 84, 40, 1, k)); R2(ctx, x - 1, y - 4, 2, 2, evRgb(170, 120, 70, 1, k)); R2(ctx, x + 3, y - 3, 1, 2, evRgb(170, 150, 110, 1, k)); ctx.globalAlpha = 1;
+  });
+  ADD('spider', 'front', x => (x.sea !== 'winter' ? 0.35 : 0), [25, 25], v => { v.x = WXW.x0 + 100 + Math.random() * 360; }, (v, q, dt, t, S, c, k, f) => {
+    const drop = Math.sin(Math.PI * q) * 60 + 8; ctx.fillStyle = `rgba(230,236,240,${(0.5 * f).toFixed(3)})`; ctx.fillRect(Math.round(v.x), WXW.y0, 1, Math.round(drop)); R2(ctx, v.x - 1, WXW.y0 + drop, 3, 3, evRgb(18, 14, 12, f, 1)); R2(ctx, v.x - 3, WXW.y0 + drop + 1, 2, 1, evRgb(18, 14, 12, f, 1)); R2(ctx, v.x + 2, WXW.y0 + drop + 1, 2, 1, evRgb(18, 14, 12, f, 1));
+  });
+  ADD('caterpillar', 'front', x => (x.day && !x.wet && x.sea !== 'winter' ? 0.3 : 0), [40, 40], null, (v, q, dt, t, S, c, k, f) => {
+    const p = q, x = WXW.x1 - 58 - p * 66, y = WXW.y0 + 52 - p * 16; ctx.globalAlpha = f; for (let i = 0; i < 5; i++) R2(ctx, x + i * 2 + Math.sin(t * 3 + i) * 0.4, y - 3 - (i % 2 ? 1 : 0) * (Math.sin(t * 3) > 0 ? 1 : 0), 2, 3, evRgb(i ? 120 : 190, i ? 200 : 60, i ? 70 : 50, 1, k)); ctx.globalAlpha = 1;
+  });
+  ADD('dragonswarm', 'ground', x => (x.dusk && x.sea === 'summer' && !x.wet ? 0.5 : 0), [40, 40], v => { v.d = Array.from({ length: 5 }, () => ({ x: 262, y: WXW.y1 - 40, tx: 262, ty: WXW.y1 - 40, next: 0 })); }, (v, q, dt, t, S, c, k, f) => {
+    const now = Date.now(); v.d.forEach((d, i) => { if (now > d.next) { d.next = now + 600 + Math.random() * 1200; d.tx = 200 + Math.random() * 130; d.ty = WXW.y1 - 52 + Math.random() * 30; } d.x += (d.tx - d.x) * Math.min(1, dt * 3.5); d.y += (d.ty - d.y) * Math.min(1, dt * 3.5); const fl = Math.floor(t * 30 + i) % 2; ctx.globalAlpha = f; R2(ctx, d.x - 3, d.y, 7, 1, evRgb(40, 150, 170, 1, k)); ctx.fillStyle = 'rgba(230,246,255,.7)'; ctx.fillRect(Math.round(d.x) - 1, Math.round(d.y) - 1 - fl, 3, 1); ctx.fillRect(Math.round(d.x) - 1, Math.round(d.y) + 1 + fl, 3, 1); ctx.globalAlpha = 1; });
+  });
+  ADD('glowworms', 'front', x => (x.night && x.sea !== 'winter' && !x.wet ? 0.4 : 0), [90, 90], v => { v.p = Array.from({ length: 12 }, (_, i) => [i < 6 ? WXW.x0 + 100 + Math.random() * 70 : WXW.x1 - 170 + Math.random() * 70, WXW.y1 - 7 - Math.random() * 8, Math.random() * 6]); }, (v, q, dt, t, S, c, k, f) => {
+    v.p.forEach(([x, y, ph]) => { const a = f * (0.5 + 0.5 * Math.sin(t * 1.2 + ph)); const g = ctx.createRadialGradient(x, y, 0, x, y, 6); g.addColorStop(0, `rgba(170,255,140,${(a * 0.5).toFixed(3)})`); g.addColorStop(1, 'rgba(170,255,140,0)'); ctx.fillStyle = g; ctx.fillRect(x - 6, y - 6, 12, 12); R2(ctx, x, y, 2, 1, `rgba(220,255,190,${a.toFixed(3)})`); });
+  });
+  ADD('wolf', 'ground', x => (!x.wet && x.night ? 0.06 : 0), [24, 24], null, (v, q, dt, t, S, c, k, f) => {
+    const x = 210, y = evRidgeY(x) + 1, col = 'rgba(3,3,6,.96)', up = q > 0.1 && q < 0.8; ctx.globalAlpha = f;
+    R2(ctx, x - 4, y - 7, 8, 6, col); R2(ctx, x - 5, y - 2, 2, 3, col); R2(ctx, x + 3, y - 2, 2, 3, col); R2(ctx, x - 8, y - 6, 5, 2, col); if (up) { R2(ctx, x + 3, y - 12, 3, 6, col); R2(ctx, x + 4, y - 16, 6, 2, col); R2(ctx, x + 8, y - 15, 3, 1, col); R2(ctx, x + 4, y - 18, 1, 2, col); } else { R2(ctx, x + 3, y - 9, 4, 3, col); R2(ctx, x + 6, y - 8, 3, 2, col); }
+    ctx.globalAlpha = 1;
+  });
+
+  // ---------------- things in the night ----------------
+  ADD('skylantern', 'sky', x => (x.night && !x.wet && x.wind < 0.7 ? 0.1 : 0), [50, 50], v => { v.x = 200 + Math.random() * 240; }, (v, q, dt, t, S, c, k, f) => {
+    const x = v.x + q * 60 + Math.sin(t * 0.8) * 5, y = WXW.y1 - 30 - q * 120, g = ctx.createRadialGradient(x, y, 0, x, y, 14); g.addColorStop(0, `rgba(255,170,70,${(0.5 * f).toFixed(3)})`); g.addColorStop(1, 'rgba(255,170,70,0)'); ctx.fillStyle = g; ctx.fillRect(x - 14, y - 14, 28, 28);
+    R2(ctx, x - 2, y - 3, 5, 6, `rgba(255,190,90,${f.toFixed(3)})`); R2(ctx, x - 1, y - 2, 3, 4, `rgba(255,236,170,${f.toFixed(3)})`);
+  });
+  ADD('balloon', 'sky', x => (x.twi && x.mon >= 3 && x.mon <= 9 && !x.wet && x.wind < 0.6 ? 0.07 : 0), [120, 120], v => { v.y = WXW.y0 + 55 + Math.random() * 30; }, (v, q, dt, t, S, c, k, f) => {
+    const x = v.dir > 0 ? WXW.x0 + 20 + q * (WXW.x1 - WXW.x0 - 40) : WXW.x1 - 20 - q * (WXW.x1 - WXW.x0 - 40), y = v.y + Math.sin(t * 0.3) * 3;
+    ctx.globalAlpha = f * 0.9; for (let i = 0; i < 5; i++) R2(ctx, x - 5 + i * 2, y - (i === 0 || i === 4 ? 6 : 8), 2, i === 0 || i === 4 ? 8 : 12, i % 2 ? 'rgb(230,230,220)' : 'rgb(200,70,60)'); R2(ctx, x - 3, y + 4, 6, 2, 'rgb(150,70,70)'); R2(ctx, x - 1, y + 6, 2, 1, 'rgb(40,30,24)'); R2(ctx, x - 2, y + 7, 4, 2, 'rgb(110,80,50)'); ctx.globalAlpha = 1;
+  });
+  ADD('kite', 'ground', x => (x.day && !x.wet && x.wind > 0.45 ? 0.5 : 0), [40, 40], v => { v.x = 300 + Math.random() * 150; }, (v, q, dt, t, S, c, k, f) => {
+    const ax = v.x, ay = evMeadowY(v.x) + 4, kx = ax + Math.sin(t * 0.9) * 10 + 20, ky = WXW.y0 + 70 + Math.sin(t * 1.3) * 8; ctx.globalAlpha = f;
+    ctx.strokeStyle = 'rgba(40,30,20,.5)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.quadraticCurveTo(ax + 6, (ay + ky) / 2 + 10, kx, ky + 4); ctx.stroke();
+    R2(ctx, kx - 1, ky - 5, 3, 3, 'rgb(220,60,60)'); R2(ctx, kx - 3, ky - 2, 7, 3, 'rgb(240,200,60)'); R2(ctx, kx - 1, ky + 1, 3, 3, 'rgb(60,120,220)');
+    for (let i = 0; i < 4; i++) R2(ctx, kx - 1 + Math.sin(t * 5 + i) * 2 - i, ky + 5 + i * 3, 2, 2, i % 2 ? 'rgb(240,240,240)' : 'rgb(220,60,60)'); ctx.globalAlpha = 1;
+  });
+  ADD('campfire', 'ground', x => (x.night && !x.wet ? 0.07 : 0), [120, 200], null, (v, q, dt, t, S, c, k, f) => {
+    const x = 190, y = evRidgeY(x) + 1, fl = 0.7 + 0.3 * Math.sin(t * 9) * Math.sin(t * 5.3);
+    const g = ctx.createRadialGradient(x, y - 2, 0, x, y - 2, 16); g.addColorStop(0, `rgba(255,150,50,${(0.45 * f * fl).toFixed(3)})`); g.addColorStop(1, 'rgba(255,150,50,0)'); ctx.fillStyle = g; ctx.fillRect(x - 16, y - 18, 32, 32);
+    R2(ctx, x - 1, y - 4, 3, 3, `rgba(255,${Math.round(190 * fl)},60,${f.toFixed(3)})`); R2(ctx, x, y - 6, 1, 2, `rgba(255,230,140,${f.toFixed(3)})`);
+    [-8, 7, 10].forEach((dx, i) => { R2(ctx, x + dx, y - 4 - (i === 2 ? 0 : 0), 2, 4, 'rgba(6,6,10,.9)'); R2(ctx, x + dx, y - 6, 2, 2, 'rgba(6,6,10,.9)'); });
+  });
+  ADD('litwindow', 'ground', x => (x.night && !x.wet ? 0.1 : 0), [80, 120], v => { v.x = 230 + Math.random() * 90; }, (v, q, dt, t, S, c, k, f) => {
+    const y = evRidgeY(v.x) - 4, a = f * (0.85 + 0.15 * Math.sin(t * 4)); const g = ctx.createRadialGradient(v.x, y, 0, v.x, y, 8); g.addColorStop(0, `rgba(255,200,110,${(0.3 * a).toFixed(3)})`); g.addColorStop(1, 'rgba(255,200,110,0)'); ctx.fillStyle = g; ctx.fillRect(v.x - 8, y - 8, 16, 16); R2(ctx, v.x - 1, y - 1, 3, 3, `rgba(255,214,130,${a.toFixed(3)})`);
+  });
+  ADD('extratree', 'ground', x => (x.night && !x.wet ? 0.08 : 0), [90, 90], null, (v, q, dt, t, S, c, k, f) => {
+    const x = 330, y = evRidgeY(x) + 1, col = `rgba(4,6,8,${(0.9 * f).toFixed(3)})`; R2(ctx, x - 1, y - 12, 3, 12, col); for (let i = 0; i < 9; i += 2) R2(ctx, x - 2 - Math.floor((9 - i) / 2), y - 30 + i * 2, 5 + (9 - i), 2, col); R2(ctx, x - 1, y - 32, 3, 3, col);
+  });
+  ADD('scarecrow', 'ground', x => (x.night && !x.wet ? 0.08 : 0), [120, 120], null, (v, q, dt, t, S, c, k, f) => {
+    const x = 182, y = evMeadowY(x) + 6, face = q > 0.55 ? 1 : -1, col = `rgba(6,6,8,${(0.95 * f).toFixed(3)})`;
+    R2(ctx, x, y - 14, 1, 14, col); R2(ctx, x - 5, y - 11, 11, 1, col); R2(ctx, x - 1, y - 12, 3, 5, col); R2(ctx, x - 2, y - 18, 5, 4, col); R2(ctx, x - 4, y - 19, 9, 1, col); R2(ctx, x - 2, y - 22, 5, 3, col);
+    if (q > 0.55) { R2(ctx, x - 1, y - 16, 1, 1, `rgba(255,120,60,${f.toFixed(3)})`); R2(ctx, x + 1, y - 16, 1, 1, `rgba(255,120,60,${f.toFixed(3)})`); }
+  });
+  ADD('eyes', 'ground', x => (x.night && !x.wet ? 0.18 : 0), [40, 40], v => { v.e = Array.from({ length: 4 }, () => ({ x: 150 + Math.random() * 340, y: -2 - Math.random() * 6, ph: Math.random() * 9, col: Math.random() < 0.5 ? '255,220,100' : '170,255,170' })); }, (v, q, dt, t, S, c, k, f) => {
+    v.e.forEach(e => { const y = evMeadowY(e.x) + 8 + e.y, a = f * (((t + e.ph) % 5) > 4.7 ? 0 : 0.9); if (a < 0.05) return; ctx.fillStyle = `rgba(${e.col},${a.toFixed(3)})`; ctx.fillRect(Math.round(e.x), Math.round(y), 1, 1); ctx.fillRect(Math.round(e.x) + 3, Math.round(y), 1, 1); ctx.fillStyle = `rgba(${e.col},${(a * 0.2).toFixed(3)})`; ctx.fillRect(Math.round(e.x) - 2, Math.round(y) - 2, 8, 5); });
+  });
+  ADD('ghostdeer', 'ground', x => (x.night && !x.wet ? 0.07 : 0), [40, 40], null, (v, q, dt, t, S, c, k, f) => {
+    const x = v.dir > 0 ? 170 + q * 280 : 450 - q * 280; ctx.globalAlpha = f * 0.35 * (0.7 + 0.3 * Math.sin(t * 2)); evAnimal(x, evMeadowY(x) + 7, 'deer', v.dir, Math.floor(t * 3) % 2, 2.6, 'walk'); ctx.globalAlpha = 1;
+  });
+  ADD('fogfigure', 'ground', x => ((x.night || x.twi) && x.fog > 0.3 ? 0.5 : 0), [50, 50], null, (v, q, dt, t, S, c, k, f) => {
+    const x = 330 + Math.sin(t * 0.4) * 2, y = evMeadowY(330) + 2; ctx.globalAlpha = f * 0.55 * Math.min(1, c.fog * 2); const col = 'rgba(210,220,226,.85)'; R2(ctx, x - 1, y - 34, 3, 32, col); R2(ctx, x - 2, y - 38, 5, 4, col); R2(ctx, x - 5, y - 30, 2, 12, col); R2(ctx, x + 4, y - 30, 2, 12, col); R2(ctx, x - 1, y - 36, 1, 1, 'rgba(20,20,30,.9)'); R2(ctx, x + 1, y - 36, 1, 1, 'rgba(20,20,30,.9)'); ctx.globalAlpha = 1;
+  });
+  ADD('watcherPeek', 'front', x => (x.night && !x.wet ? 0.05 : 0), [40, 40], null, (v, q, dt, t, S, c, k, f) => {
+    const x = WXW.x1 - 86 - 12, y = WXW.y0 + 124, out = Math.min(1, q * 8) * (q > 0.9 ? (1 - q) * 10 : 1); ctx.globalAlpha = f; R2(ctx, x - 4 * out, y - 8, 4 * out, 16, 'rgba(3,3,6,.97)'); R2(ctx, x - 7 * out, y - 11, 6 * out, 2, 'rgba(3,3,6,.97)');
+    const ea = ((t % 6) > 5.8 ? 0 : 1); if (ea && out > 0.5) { const g = ctx.createRadialGradient(x - 3, y - 4, 0, x - 3, y - 4, 9); g.addColorStop(0, 'rgba(200,255,180,.55)'); g.addColorStop(1, 'rgba(200,255,180,0)'); ctx.fillStyle = g; ctx.fillRect(x - 12, y - 13, 18, 18); R2(ctx, x - 3, y - 5, 2, 2, 'rgba(235,255,210,.98)'); } ctx.globalAlpha = 1;
+  });
+  ADD('cabinflicker', 'ground', x => (x.night && !x.wet ? 0.1 : 0), [25, 25], null, (v, q, dt, t, S, c, k, f) => {
+    const cx = 470, cy = evRidgeY(470), on = Math.floor(t * 3) % 2, sh = q > 0.3 && q < 0.5; ctx.globalAlpha = f; R2(ctx, cx - 5, cy - 7, 4, 3, on ? 'rgba(10,8,8,.95)' : 'rgba(255,214,130,.95)'); if (sh && !on) R2(ctx, cx - 4 + (q - 0.3) * 10, cy - 7, 1, 3, 'rgba(10,8,8,.95)'); ctx.globalAlpha = 1;
+  });
+  ADD('cabinperson', 'ground', x => (x.night || x.twi ? 0.18 : x.day ? 0.05 : 0) * (x.wet ? 0 : 1), [25, 25], null, (v, q, dt, t, S, c, k, f) => {
+    const cx = 470, cy = evRidgeY(470), open = q > 0.1 && q < 0.9, px = cx - 2 + (q - 0.1) * 12; ctx.globalAlpha = f; if (open) { ctx.fillStyle = 'rgba(255,200,110,.55)'; ctx.fillRect(cx - 3, cy - 5, 6, 5); ctx.fillStyle = 'rgba(255,200,110,.2)'; ctx.fillRect(cx - 6, cy - 1, 12, 2); R2(ctx, px, cy - 8, 2, 7, 'rgba(8,8,12,.95)'); R2(ctx, px, cy - 10, 2, 2, 'rgba(8,8,12,.95)'); } ctx.globalAlpha = 1;
+  });
+  ADD('moonface', 'sky', x => (x.night && x.moon ? 0.012 : 0), [25, 25], null, (v, q, dt, t, S, c, k, f) => {
+    if (!(S.moonU > 0 && S.moonU < 1)) return; const mx = WXW.x0 + 30 + S.moonU * (WXW.x1 - WXW.x0 - 60), my = WXW.y1 - 18 - Math.sin(Math.PI * S.moonU) * 130; ctx.globalAlpha = f * 0.6; R2(ctx, mx - 5, my - 4, 3, 3, 'rgba(110,120,150,.9)'); R2(ctx, mx + 2, my - 4, 3, 3, 'rgba(110,120,150,.9)'); R2(ctx, mx - 4, my + 4, 9, 2, 'rgba(110,120,150,.9)'); R2(ctx, mx - 5, my + 3, 2, 1, 'rgba(110,120,150,.9)'); R2(ctx, mx + 4, my + 3, 2, 1, 'rgba(110,120,150,.9)'); ctx.globalAlpha = 1;
+  });
+  ADD('fireshape', 'ground', x => (x.night && x.sea === 'summer' && !x.wet ? 0.2 : 0), [28, 28], v => { v.h = Array.from({ length: 22 }, (_, i) => { const a = (i / 22) * 6.283, hx = 16 * Math.pow(Math.sin(a), 3), hy = -(13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a)); return { tx: 320 + hx * 2.2, ty: evMeadowY(320) - 46 + hy * 2.2, x: 200 + Math.random() * 240, y: evMeadowY(320) - 10 - Math.random() * 40, ph: Math.random() * 6 }; }); }, (v, q, dt, t, S, c, k, f) => {
+    const gather = q < 0.25 ? q / 0.25 : q < 0.7 ? 1 : Math.max(0, 1 - (q - 0.7) / 0.3);
+    v.h.forEach(d => { const wx = d.x + Math.sin(t * 0.6 + d.ph) * 20, wy = d.y + Math.sin(t * 0.8 + d.ph) * 8, x = wx + (d.tx - wx) * gather, y = wy + (d.ty - wy) * gather, a = f * (0.5 + 0.5 * Math.sin(t * 1.8 + d.ph)); ctx.fillStyle = `rgba(230,255,150,${(a * 0.2).toFixed(3)})`; ctx.fillRect(Math.round(x) - 3, Math.round(y) - 3, 7, 7); ctx.fillStyle = `rgba(240,255,170,${a.toFixed(3)})`; ctx.fillRect(Math.round(x), Math.round(y), 2, 2); });
+  });
+  ADD('whisper', 'none', x => (x.night && !x.wet ? 0.1 : 0), [12, 12]);
+  ADD('dawnchorus', 'none', x => (x.twi && !x.wet && x.sea !== 'winter' && x.mon >= 2 ? (x.dusk ? 0.2 : 0.5) : 0), [14, 14]);
+  ADD('batglass', 'front', x => (x.dusk && x.mon >= 3 && x.mon <= 8 && !x.wet ? 0.3 : 0), [10, 10], v => { v.x = WXW.x0 + 150 + Math.random() * 280; v.y = WXW.y0 + 40 + Math.random() * 60; }, (v, q, dt, t, S, c, k, f) => {
+    const sway = Math.sin(t * 1.2) * 0.5; ctx.globalAlpha = f; const col = evRgb(12, 10, 16, 1, 1); R2(ctx, v.x - 1, v.y + 2 + sway, 3, 4, col); R2(ctx, v.x - 4, v.y + 3, 3, 4, col); R2(ctx, v.x + 2, v.y + 3, 3, 4, col); R2(ctx, v.x - 1, v.y + 5, 3, 2, col); R2(ctx, v.x - 1, v.y, 1, 2, col); R2(ctx, v.x + 1, v.y, 1, 2, col); ctx.globalAlpha = 1;
+  });
+  ADD('wishstar', 'sky', x => (x.night ? 0.5 : 0), [3, 3], v => { v.x = WXW.x0 + 80 + Math.random() * 400; v.y = WXW.y0 + 10 + Math.random() * 40; }, (v, q, dt, t, S, c, k, f) => {
+    const u = q * 3, x = v.x + v.dir * u * 150, y = v.y + u * 70; for (let i = 0; i < 18; i++) { const uu = Math.max(0, u - i * 0.03); ctx.fillStyle = `rgba(255,${i < 4 ? '255,255' : '236,170'},${(Math.max(0, 1 - i / 18) * (1 - q) * 1.6).toFixed(3)})`; ctx.fillRect(Math.round(v.x + v.dir * uu * 150), Math.round(v.y + uu * 70), i < 3 ? 4 : 2, 2); }
+    if (q > 0.6) { const a = (1 - q) * 2.5; ctx.fillStyle = `rgba(255,255,220,${a.toFixed(3)})`; ctx.fillRect(Math.round(x) - 2, Math.round(y), 5, 1); ctx.fillRect(Math.round(x), Math.round(y) - 2, 1, 5); }
+  });
+  // ======================================================================
+  // 9v. Sky events, weather moods, slow landscape changes, the Journal's
+  //     "Outside" page and tonight's forecast.
+  // ======================================================================
+  const evF = n => !!EV.force[n];
+  const evSun = S => { const u = clamp(S.sunU, 0, 1); return [WXW.x0 + 30 + u * (WXW.x1 - WXW.x0 - 60), WXW.y1 - 18 - Math.sin(Math.PI * u) * 140]; };
+  const evMoonXY = S => [WXW.x0 + 30 + S.moonU * (WXW.x1 - WXW.x0 - 60), WXW.y1 - 18 - Math.sin(Math.PI * S.moonU) * 130];
+  const evGlow = (x, y, r, rgb, a) => { const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, `rgba(${rgb},${a.toFixed(3)})`); g.addColorStop(1, `rgba(${rgb},0)`); ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2); };
+  const evDays = ms => ms / 86400000;
+  function evSeasonDay() { const d = new Date(), y = d.getFullYear(); return { d, y, doy: Math.floor((d - new Date(y, 0, 0)) / 86400000) }; }
+
+  function ev2Sky(dt, t, S, c) {
+    const x0 = WXW.x0, x1 = WXW.x1, y0 = WXW.y0, y1 = WXW.y1, ww = x1 - x0, now = Date.now(), pl = evPlanNow();
+    const wk = (typeof wxNow === 'function' ? wxNow().k : 'clear'), night = S.alt < -0.06, clear = 1 - c.cloud;
+    const { d, y } = evSeasonDay(), sea = wdSeason();
+    // moon specials
+    if (S.moonU > 0 && S.moonU < 1 && night) {
+      const [mx, my] = evMoonXY(S);
+      if (evF('supermoon') || (pl.super && evFull(S))) { evLog('supermoon'); evGlow(mx, my, 34, '255,240,200', 0.22 * clear); evGlow(mx, my, 18, '255,250,230', 0.3 * clear); }
+      if (evF('bluemoon') || (evFull(S) && d.getDate() >= 29 && !evF('supermoon'))) { evLog('bluemoon', y + '-' + d.getMonth()); evGlow(mx, my, 30, '120,170,255', 0.3 * clear); }
+    }
+    // planets in a row
+    const pw = evWin('planets', S);
+    if (pw) { evLog('planets'); const f = evFade(pw, 40) * clear; ['255,210,150', '255,150,110', '240,240,255', '200,220,255', '255,236,190'].forEach((col, i) => { const px = x0 + 70 + i * 62 + (S.moonU > 0 ? 0 : 0), py = y1 - 60 - i * 3 + (i % 2) * 4; evGlow(px, py, 7, col, 0.35 * f); R2(ctx, px - 1, py - 1, 3, 3, `rgba(${col},${(0.95 * f).toFixed(3)})`); }); }
+    // noctilucent clouds, zodiacal light
+    const nw = pw === null ? null : null, nc = pl.nocti, now2 = now;
+    if (evF('nocti') || (nc && now2 >= nc.a && now2 <= nc.b && S.alt < 0.02 && S.alt > -0.3)) { evLog('nocti'); const f = (evF('nocti') ? 1 : evMid(0, 1, Math.min((now2 - nc.a) / 30000, (nc.b - now2) / 30000))) * clear; for (let i = 0; i < 6; i++) { const yy = y1 - 80 - i * 7, xs = ((t * 1.5 + i * 90) % (ww + 80)); for (let k = 0; k < 8; k++) { ctx.fillStyle = `rgba(150,220,255,${(0.28 * f * (1 - k / 8)).toFixed(3)})`; ctx.fillRect(Math.round(x0 + ((xs + k * 14) % ww)), Math.round(yy + Math.sin(k + i) * 2), 14, 1); } } }
+    const zl = pl.zodiac;
+    if (evF('zodiac') || (zl && now >= zl.a && now <= zl.b && S.alt < -0.15)) { evLog('zodiac'); const f = (evF('zodiac') ? 1 : evMid(0, 1, Math.min((now - zl.a) / 40000, (zl.b - now) / 40000))) * clear * 0.6; const gx = x0 + ww * 0.5; for (let i = 0; i < 40; i++) { ctx.fillStyle = `rgba(240,230,190,${(0.12 * f * (1 - i / 40)).toFixed(3)})`; ctx.fillRect(Math.round(gx - (40 - i) * 0.9), y1 - 40 - i * 3, Math.round((40 - i) * 1.8), 3); } }
+    // sun effects
+    if (S.alt > -0.05 && S.sunU > 0 && S.sunU < 1 && wk !== 'rain' && wk !== 'storm') {
+      const [sx, sy] = evSun(S);
+      if (evF('sundogs') || (S.alt > 0.02 && S.alt < 0.35 && clear > 0.7 && wk === 'clear' && (sea === 'winter' || mulberry(hashStr('sd:' + dateKey()))() < 0.07))) { evLog('sundogs'); for (const s of [-1, 1]) { const px = sx + s * 42; evGlow(px, sy, 9, '255,220,150', 0.3); R2(ctx, px - 1, sy - 1, 3, 3, 'rgba(255,240,200,.7)'); } ctx.fillStyle = 'rgba(255,240,200,.12)'; ctx.fillRect(sx - 42, sy, 84, 1); }
+      if (evF('greenflash') || (S.alt > -0.03 && S.alt < 0.012 && S.sunU > 0.6 && clear > 0.85 && mulberry(hashStr('gf:' + dateKey()))() < 0.05)) { evLog('greenflash'); const a = evF('greenflash') ? 1 : 1; evGlow(sx, sy, 8, '120,255,160', 0.6 * a); R2(ctx, sx - 1, sy - 3, 3, 2, 'rgba(160,255,190,.95)'); }
+    }
+    // equinox glow
+    if (evF('equinox') || (((d.getMonth() === 2 && d.getDate() >= 19 && d.getDate() <= 21) || (d.getMonth() === 8 && d.getDate() >= 21 && d.getDate() <= 23)) && S.alt > -0.1 && S.alt < 0.18 && S.sunU < 0.5)) { evLog('equinox', y + '-' + d.getMonth()); evGlow(x0 + 30 + 0 * ww, y1 - 20, 150, '255,190,150', 0.16 * clear); }
+    // mammatus and thunderheads
+    if (evF('mammatus') || (c.storm > 0.3 && c.cloud > 0.6)) { evLog('mammatus', dateKey()); for (let i = 0; i < 26; i++) { const mx = x0 + 10 + i * 22, my = y0 + 70 + Math.sin(i * 1.3) * 3; ctx.fillStyle = 'rgba(110,116,134,.35)'; ctx.beginPath(); ctx.ellipse(mx, my + 2, 9, 5 + (i % 3), 0, 0, 7); ctx.fill(); } }
+    if (evF('thunderhead') || (S.alt > -0.1 && c.storm > 0.02 && c.storm < 0.3)) { evLog('thunderhead', dateKey()); const f = evF('thunderhead') ? 1 : evMid(0, 1, c.storm * 5); for (let i = 0; i < 5; i++) { const cx = x0 + 100 + i * 85, cy = evRidgeY(cx) - 16 - (i % 2) * 6; ctx.fillStyle = `rgba(${S.alt > 0.1 ? '230,232,240' : '80,86,110'},${(0.7 * f).toFixed(3)})`; for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.ellipse(cx + (k - 1.5) * 10, cy - k % 2 * 8, 14 - k, 9, 0, 0, 7); ctx.fill(); } if (Math.sin(t * 3 + i * 9) > 0.97) { ctx.fillStyle = 'rgba(255,255,230,.5)'; ctx.fillRect(cx - 6, cy - 6, 14, 10); } } }
+    // first-of-season
+    if (c.snow > 0.3) evLog('firstsnow', y + ':' + (d.getMonth() > 6 ? 'a' : 'b'));
+    if (sea === 'spring' && S.alt > 0.1 && d.getMonth() >= 2) evLog('firstblossom', String(y));
+    if (sea === 'autumn' && S.alt > 0.1 && d.getMonth() >= 8) evLog('firstleaf', String(y));
+  }
+
+  function ev2Ground(dt, t, S, c) {
+    const x0 = WXW.x0, x1 = WXW.x1, y1 = WXW.y1, ww = x1 - x0, now = Date.now(), wk = (typeof wxNow === 'function' ? wxNow().k : 'clear'), sea = wdSeason();
+    const { d } = evSeasonDay(), morning = S.alt > -0.12 && S.alt < 0.2 && S.sunU < 0.5, day = S.alt > 0.08;
+    // fog morning with looming shapes
+    if (evF('fogmorn') || (c.fog > 0.55 && S.alt > -0.1)) { evLog('fogmorn', dateKey()); for (let i = 0; i < 4; i++) { const x = x0 + 90 + i * 130 + Math.sin(t * 0.1 + i) * 3, h = 26 + (i % 2) * 14; ctx.fillStyle = 'rgba(70,84,90,.28)'; ctx.fillRect(x, evMeadowY(x) - h + 6, 4, h); ctx.fillRect(x - 6, evMeadowY(x) - h + 6, 16, 10); } }
+    // sun shower
+    if (evF('sunshower') || (c.rain > 0.15 && c.cloud < 0.55 && S.alt > 0.1)) { evLog('sunshower', dateKey()); for (let i = 0; i < 40; i++) { const rx = x0 + ((i * 47 + t * 20) % ww), ry = WXW.y0 + ((t * 160 + i * 31) % (y1 - WXW.y0)); ctx.fillStyle = 'rgba(255,225,140,.55)'; ctx.fillRect(Math.round(rx), Math.round(ry), 1, 4); } }
+    // dew sparkles and mist on the lake
+    if (evF('dew') || (morning && c.rain < 0.1 && c.fog < 0.3 && c.cloud < 0.6 && sea !== 'winter')) { evLog('dew', dateKey()); for (let i = 0; i < 22; i++) { const a = Math.max(0, Math.sin(t * 2 + i * 2.1)); if (a < 0.3) continue; const dx = x0 + 20 + (i * 83) % (ww - 40); ctx.fillStyle = `rgba(255,255,255,${(a * 0.8).toFixed(3)})`; ctx.fillRect(Math.round(dx), Math.round(evMeadowY(dx) + 3 + (i % 4) * 3), 1, 1); } }
+    if (evF('lakemist') || (morning && c.rain < 0.1 && c.wind < 0.4 && (sea === 'autumn' || sea === 'spring' || mulberry(hashStr('lm:' + dateKey()))() < 0.2))) { evLog('lakemist', dateKey()); for (let i = 0; i < 7; i++) { const mx = 230 + i * 6 + Math.sin(t * 0.3 + i) * 5, my = 232 - ((t * 3 + i * 7) % 18); ctx.fillStyle = `rgba(235,242,248,${(0.18 * (1 - ((t * 3 + i * 7) % 18) / 18)).toFixed(3)})`; ctx.fillRect(Math.round(mx), Math.round(my), 14, 3); } }
+    // heat shimmer
+    if (evF('heat') || (sea === 'summer' && day && c.cloud < 0.3 && S.alt > 0.45 && c.rain < 0.1)) { evLog('heat', dateKey()); for (let i = 0; i < 12; i++) { const hx = x0 + i * 48 + Math.sin(t * 2 + i) * 4; ctx.fillStyle = 'rgba(255,255,255,.07)'; ctx.fillRect(Math.round(hx), evMeadowY(hx) - 4 + Math.sin(t * 3 + i) * 2, 36, 1); } }
+    // puddles
+    const wet = EV.rain && now - EV.rain < 2 * 3600000;
+    if (evF('puddles') || (wet && c.rain < 0.3 && S.alt > -0.2)) { evLog('puddles', dateKey()); for (let i = 0; i < 6; i++) { const px = x0 + 50 + i * 90, py = evMeadowY(px) + 7 + (i % 2) * 3; ctx.fillStyle = S.alt < -0.05 ? 'rgba(120,140,180,.35)' : 'rgba(170,200,230,.5)'; ctx.fillRect(px, py, 14, 2); ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(px + 2, py, 4, 1); } }
+    // washing line, weathervane, cabin door handled by visitor; smoke leans with wind
+    if (evF('washing') || ((sea === 'summer' || sea === 'spring') && day && c.rain < 0.1 && c.wind > 0.12 && mulberry(hashStr('wl:' + dateKey()))() < 0.4)) { evLog('washing', dateKey()); const lx = 438, ly = evRidgeY(438) - 6; ctx.fillStyle = 'rgba(60,50,40,.8)'; ctx.fillRect(lx, ly, 1, 7); ctx.fillRect(lx + 20, ly, 1, 7); ctx.fillStyle = 'rgba(60,50,40,.5)'; ctx.fillRect(lx, ly, 21, 1); ['rgb(240,240,236)', 'rgb(220,90,80)', 'rgb(90,140,220)'].forEach((col, i) => { const sw = Math.sin(t * 3 + i) * (c.wind * 2 + 0.5); ctx.fillStyle = col; ctx.fillRect(Math.round(lx + 3 + i * 6 + sw), ly + 1, 3, 4); }); }
+    const cbx = 470, cby = evRidgeY(470) - 13, ang = t * (0.8 + c.wind * 5); ctx.fillStyle = 'rgba(40,36,34,.8)'; ctx.fillRect(cbx, cby, 1, 3); const ca = Math.cos(ang) * 3, sa = Math.sin(ang) * 1; ctx.fillRect(Math.round(cbx - 3 + sa), cby - 1, 7, 1); ctx.fillRect(Math.round(cbx + ca), cby - 2, 1, 2);
+    // growth: thick snow, trees: rime
+    const snowAge = evDays(now - ((state && state.snowAt) || 0));
+    if (evF('snowcover') || (sea === 'winter' && snowAge < 3 && c.snow < 0.3 && c.rain < 0.2)) { const f = evF('snowcover') ? 1 : 1 - snowAge / 3 * 0.5; ctx.fillStyle = `rgba(240,246,252,${(0.72 * f).toFixed(3)})`; for (let x = x0; x < x1; x += 4) ctx.fillRect(x, Math.round(evMeadowY(x)) + 3, 4, y1 - evMeadowY(x)); ctx.fillStyle = `rgba(240,246,252,${(0.45 * f).toFixed(3)})`; for (let x = x0; x < x1; x += 4) ctx.fillRect(x, Math.round(evRidgeY(x)) - 1, 4, 2); }
+    if (evF('rime') || (sea === 'winter' && c.rain < 0.1 && c.snow < 0.2 && morning)) { evLog('rime', dateKey()); ctx.fillStyle = 'rgba(235,245,255,.5)'; for (let x = x0 + 4; x < x1; x += 7) { const yy = evRidgeY(x) - 2 - ((x * 7) % 5); ctx.fillRect(x, yy, 2, 1); ctx.fillRect(x + 1, yy - 1, 1, 1); } }
+    // mushrooms after rain at the feet of the near trees
+    const rainAge = now - ((state && state.rainAt) || 0);
+    if (evF('mushrooms') || (rainAge < 8 * 3600000 && sea !== 'winter' && S.alt > -0.1)) { evLog('mushrooms', dateKey()); [[x0 + 46, 'rgb(220,70,60)'], [x0 + 62, 'rgb(240,200,120)'], [x1 - 50, 'rgb(220,70,60)'], [x1 - 70, 'rgb(200,160,230)']].forEach(([mx, col]) => { R2(ctx, mx, y1 - 9, 1, 3, 'rgb(240,236,220)'); R2(ctx, mx - 1, y1 - 11, 4, 2, col); }); }
+    // sun shafts + dust through the canopy
+    if (evF('shafts') || (day && S.alt < 0.5 && c.cloud < 0.4 && c.fog < 0.3 && c.rain < 0.1 && sea !== 'winter')) { evLog('shafts', dateKey()); const sh = S.sunU < 0.5 ? 1 : -1; for (let i = 0; i < 3; i++) { const bx = (sh > 0 ? x0 + 60 : x1 - 60) + sh * i * 70, a = 0.06 + 0.03 * Math.sin(t * 0.5 + i); ctx.fillStyle = `rgba(255,244,190,${a.toFixed(3)})`; ctx.beginPath(); ctx.moveTo(bx, WXW.y0); ctx.lineTo(bx + 16, WXW.y0); ctx.lineTo(bx + sh * 50 + 16, y1 - 8); ctx.lineTo(bx + sh * 50, y1 - 8); ctx.fill(); for (let k = 0; k < 4; k++) { const my = WXW.y0 + ((t * 6 + k * 37 + i * 11) % (y1 - WXW.y0 - 8)); ctx.fillStyle = 'rgba(255,250,220,.5)'; ctx.fillRect(Math.round(bx + (my - WXW.y0) * sh * 0.3 + 6 + Math.sin(t + k) * 3), Math.round(my), 1, 1); } } }
+  }
+
+  function ev2Front(dt, t, S, c) {
+    const x0 = WXW.x0, x1 = WXW.x1, y0 = WXW.y0, y1 = WXW.y1, now = Date.now(), sea = wdSeason(), { d } = evSeasonDay(), first = (state && prefsFirst()) || now;
+    // spider web in the top-left corner, grows over days then resets
+    const cyc = 9, age = (evDays(now - hashStr('web') % 7 * 86400000) % cyc) / cyc, wv = evF('web') ? 1 : age;
+    if (sea !== 'winter' || evF('web')) { evLog('web', String(Math.floor(evDays(now) / cyc))); const n = Math.round(2 + wv * 5), len = 12 + wv * 26; ctx.strokeStyle = 'rgba(236,240,245,.4)'; ctx.lineWidth = 1; ctx.beginPath(); for (let i = 0; i <= 3; i++) { const a = i * Math.PI / 6; ctx.moveTo(x0 + 3, y0 + 3); ctx.lineTo(x0 + 3 + Math.cos(a) * len, y0 + 3 + Math.sin(a) * len); } for (let r = 1; r <= n; r++) { const rr = r * (len / (n + 1)) + 2; ctx.moveTo(x0 + 3 + rr, y0 + 3); for (let i = 1; i <= 3; i++) { const a = i * Math.PI / 6; ctx.lineTo(x0 + 3 + Math.cos(a) * rr, y0 + 3 + Math.sin(a) * rr); } ctx.lineTo(x0 + 3, y0 + 3 + rr); } ctx.stroke(); }
+    // moss creeping up the near trunks with the weeks, blossom in spring
+    const wks = Math.min(12, evDays(now - first) / 7), mh = 8 + wks * 4;
+    ctx.fillStyle = 'rgba(70,130,60,.35)'; ctx.fillRect(x0 + 6, y1 - 4 - mh, 6, mh); ctx.fillRect(x1 - 14, y1 - 4 - mh, 6, mh);
+    if (sea === 'spring' && S.alt > -0.05) { const m = d.getMonth(), prog = m === 2 ? 0.3 : m === 3 ? 0.7 : 1 - clamp((d.getDate() - 1) / 30, 0, 1) * 0.5, fall = m === 4 && d.getDate() > 10; for (let i = 0; i < Math.round(40 * prog); i++) { const bx = (i % 2 ? x1 - 70 : x0 + 20) + (i * 37) % 60, by = y0 + 20 + (i * 53) % 110 + (fall ? (t * 8 + i * 9) % 60 : 0); ctx.fillStyle = i % 3 ? 'rgba(255,200,220,.75)' : 'rgba(255,240,245,.8)'; ctx.fillRect(Math.round(bx), Math.round(by), 2, 2); } }
+    // autumn colour deepens over the season
+    if (sea === 'autumn') { const prog = clamp((evDays(now - new Date(d.getFullYear(), 8, 22)) / 70), 0, 1); ctx.fillStyle = `rgba(${Math.round(210 - prog * 60)},${Math.round(120 - prog * 50)},40,${(0.08 + prog * 0.22).toFixed(3)})`; ctx.fillRect(x0, y0, 70, y1 - y0); ctx.fillRect(x1 - 70, y0, 70, y1 - y0); }
+  }
+  function prefsFirst() { try { return prefs().firstSeen || 0; } catch (e) { return 0; } }
+
+  // ---------- the Journal's Outside page ----------
+  const OUT_GROUPS = [
+    ['SKY & CALENDAR', ['aurora', 'shower', 'comet', 'blood', 'eclipse', 'harvest', 'solstice', 'supermoon', 'bluemoon', 'planets', 'nocti', 'zodiac', 'sundogs', 'greenflash', 'equinox', 'mammatus', 'wishstar', 'moonface']],
+    ['WEATHER & SEASON', ['rainbow', 'hail', 'windstorm', 'frost', 'snowcap', 'fogmorn', 'sunshower', 'dew', 'lakemist', 'heat', 'shafts', 'puddles', 'thunderhead', 'mushrooms', 'rime', 'web', 'washing', 'firstsnow', 'firstblossom', 'firstleaf']],
+    ['VISITORS', ['deer', 'stag', 'doefawn', 'rabbit', 'fox', 'badger', 'hedgehog', 'mouse', 'squirrel', 'cat', 'owl', 'owlTree', 'bats', 'batglass', 'hawk', 'crows', 'woodpecker', 'robin', 'birds', 'geese', 'heron', 'ducks', 'frog', 'butterfly', 'bee', 'ladybird', 'snail', 'spider', 'caterpillar', 'moth', 'dragonfly', 'dragonswarm', 'glowworms', 'wolf']],
+    ['LIGHTS & STRANGE THINGS', ['wisps', 'lantern', 'skylantern', 'balloon', 'kite', 'campfire', 'cabinperson', 'litwindow', 'extratree', 'scarecrow', 'eyes', 'ghostdeer', 'fogfigure', 'watcher', 'watcherPeek', 'cabinflicker', 'fireshape', 'whisper', 'dawnchorus']],
+  ];
+  function sightN() { const s = (state && state.sightings) || {}; return Object.keys(s).filter(k => EV_NAME[k] && s[k] > 0).length; }
+  const sightC = k => ((state && state.sightings) || {})[k] || 0;
+  const sightAny = (...ks) => ks.reduce((n, k) => n + (sightC(k) > 0 ? 1 : 0), 0);
+  const outTotal = () => OUT_GROUPS.reduce((n, g) => n + g[1].length, 0);
+  function evForecast(days = 6) {
+    const out = [], base = evNightStart(Date.now());
+    for (let i = 0; i < days; i++) {
+      const st = base + i * 86400000, p = evPlanFor(st), D = new Date(st), lab = i === 0 ? 'Tonight' : i === 1 ? 'Tomorrow' : D.toLocaleDateString(undefined, { weekday: 'long' }), items = [];
+      if (p.aurora) items.push('Aurora');
+      if (p.shower) items.push(p.shower.name);
+      if (p.comet && p.comet.day === Math.floor(evDays(st) - Math.floor(st / (7 * 86400000)) * 7) % 7) items.push('Comet');
+      if (p.eclipse) items.push('Lunar eclipse');
+      if (p.solstice) items.push(p.solstice.name + ' lights');
+      if (p.planets) items.push('Planets in a row');
+      if (p.harvestOK) items.push('Harvest moon (if full)');
+      if (p.nocti) items.push('Glowing clouds at dusk');
+      if (p.zodiac) items.push('Zodiacal light before dawn');
+      out.push([lab, items]);
+    }
+    return out;
+  }
+  function showOutside() {
+    const seen = sightN(), tot = outTotal(), s = (state && state.sightings) || {}, ff = (state && state.sightFirst) || {};
+    modal('collection',
+      `${journalTabsHTML('outside')}<p class="panel-eyebrow">FIELD JOURNAL · OUTSIDE THE WINDOW</p><h2>Outside the window</h2>
+       <p><strong>${seen} of ${tot}</strong> things spotted.</p><div class="ach-bar"><i style="width:${Math.round(seen / tot * 100)}%"></i></div>
+       <h3>SKY FORECAST</h3><div class="ach-list">${evForecast().map(([l, it]) => `<div class="ach${it.length ? ' done' : ''}"><div><strong>${escHTML(l)}</strong><span>${it.length ? escHTML(it.join(', ')) : 'Nothing special expected.'}</span></div></div>`).join('')}</div>
+       <p><em>Only sky events planned by the calendar are forecast. Animals and strange visitors turn up on their own.</em></p>
+       ${OUT_GROUPS.map(([name, list]) => `<h3>${name}</h3><div class="ach-list">${list.map(k => { const n = s[k] || 0, e = EV_NAME[k] || [k, '']; return n ? `<div class="ach done"><div><strong>${escHTML(e[0])}</strong><span>${escHTML(e[1])}</span><em>SEEN ${n}× · FIRST ${new Date(ff[k] || Date.now()).toLocaleDateString()}</em></div></div>` : `<div class="ach"><div><strong>???</strong><span>Not seen yet.</span></div></div>`; }).join('')}</div>`).join('')}`,
+      () => { journalTabs(); });
+  }
+  Object.assign(REWARDS, { out10: [150], out30: [400, ['honeydew']], out60: [900, ['jelly']], outAll: [2500, ['incense']], outWatcher: [250], outBlood: [250], outComet: [300], outAurora: [250], outYear: [500], outShower: [200] });
   // ---- the frame loop and taps for Starfall Clearing
   function drawClearing(dt, t) {
     const phase = clearingPhaseNow();

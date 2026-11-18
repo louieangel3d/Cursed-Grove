@@ -2476,7 +2476,7 @@ const CG_DATA = (() => {
   // ======================================================================
   // 1. Configuration & helpers
   // ======================================================================
-  const BUILD = '1.7.13';
+  const BUILD = '1.7.14';
   const W = 640,
     H = 360; // internal canvas resolution; the stage scales it to fit
   const MAX = 8; // terrarium capacity
@@ -15747,6 +15747,10 @@ const CG_DATA = (() => {
   // ---- what's new
   // newest first; players who skipped an update see everything they missed (up to three versions)
   const CHANGELOG = [
+    { v: '1.7.14', notes: [
+      'The small window visitors are much easier to spot. The frog now sits on the window sill (and hops about), and the mouse, ladybird, snail, spider, caterpillar, bee, robin and woodpecker are drawn two to three times bigger. The hawk, badger and ducks are bigger too.',
+      'The fox, deer and the far scenery stay in the distance.',
+    ] },
     { v: '1.7.13', notes: [
       'Bugs can now be best friends, enemies, or fall in love. Bugs that spend time near each other bond, and the pair turns out one of the three. It shows on each bug\'s card.',
       'Enemies avoid each other in the terrarium and sometimes scuffle. Put them in the same jar and they fight (just a scuffle, nobody gets hurt). Lovers seek each other out, and a cocoon can appear when they are together, in the terrarium or in a jar.',
@@ -19127,6 +19131,56 @@ function fitPlate() {
       effects.push({ kind: 'heart', x: (a.x + P.x) / 2, y: Math.min(a.y, P.y) - 20, age: 0, life: 1.2 });
     }
   }
+  // ======================================================================
+  // 9y. Visitors you can actually see: the small ones come right up to the
+  //     glass and are drawn bigger. Fox, deer and the far scenery stay far.
+  // ======================================================================
+  (function () {
+    const zoom = (name, s, pivot, lift) => {
+      const orig = EV2D[name];
+      if (!orig) return;
+      EV2D[name] = (v, q, dt, t, S, c, k, f) => {
+        const [px, py] = pivot(v, q, t);
+        ctx.save(); ctx.translate(px, py); ctx.scale(s, s); ctx.translate(-px, -py);
+        try { orig(v, q, dt, t, S, c, lift ? Math.max(k, lift) : k, f); } finally { ctx.restore(); }
+      };
+    };
+    const sill = WXW.y1;
+    // the frog now sits on the sill, croaks and hops
+    VIS.frog.L = 'front';
+    EV2I.frog = v => { v.x = WXW.x0 + 130 + Math.random() * 330; v.hopAt = 2 + Math.random() * 3; };
+    EV_NAME.frog = ['Frog', 'A frog has hopped up onto the window sill and is croaking.'];
+    EV2D.frog = (v, q, dt, t, S, c, k, f) => {
+      const puff = (t % 4) < 1.1 ? 1 : 0;
+      if (puff && Math.floor((t % 4) * 10) === 1 && Date.now() - (v.c || 0) > 2500) { v.c = Date.now(); Sfx && Sfx.play && Sfx.play('croak', -0.3); }
+      if (t > v.hopAt && !v.hop) { v.hop = t; v.hopAt = t + 4 + Math.random() * 4; v.dx = (Math.random() < 0.5 ? -1 : 1) * rnd2(10, 22); if (v.x + v.dx < WXW.x0 + 60 || v.x + v.dx > WXW.x1 - 60) v.dx = -v.dx; v.fx = v.x; }
+      let hy = 0;
+      if (v.hop) { const u = (t - v.hop) / 0.5; if (u >= 1) { v.x = v.fx + v.dx; v.hop = 0; } else { v.x = v.fx + v.dx * u; hy = Math.sin(u * Math.PI) * 7; } }
+      const px = Math.round(v.x), py = sill - 2 - hy;
+      ctx.save(); ctx.translate(px, sill - 2); ctx.scale(4, 4); ctx.translate(-px, -(sill - 2));
+      ctx.globalAlpha = f;
+      k = Math.max(k, 0.9); const body = evRgb(84, 164, 66, 1, k), dk = evRgb(52, 112, 46, 1, k), lt = evRgb(206, 232, 160, 1, k), y = sill - 2 - hy / 4;
+      R2(ctx, px - 4, y - 4, 8, 4, body); R2(ctx, px - 3, y - 5, 6, 1, body); R2(ctx, px - 3, y - 7, 2, 2, body); R2(ctx, px + 1, y - 7, 2, 2, body);
+      R2(ctx, px - 3, y - 7, 1, 1, evRgb(250, 250, 150, 1, 1)); R2(ctx, px + 2, y - 7, 1, 1, evRgb(250, 250, 150, 1, 1));
+      R2(ctx, px - 3, y - 2, 6, 2, lt); R2(ctx, px - 5, y - 1, 2, 1, dk); R2(ctx, px + 3, y - 1, 2, 1, dk);
+      R2(ctx, px - 2, y - 3, 1, 1, dk); R2(ctx, px + 1, y - 3, 1, 1, dk);
+      if (puff) R2(ctx, px - 2, y - 2, 4, 3, evRgb(232, 236, 200, 1, k));
+      ctx.restore(); ctx.globalAlpha = 1;
+    };
+    const mx = (v, q) => (v.dir > 0 ? WXW.x0 + 120 + q * 300 : WXW.x1 - 120 - q * 300);
+    zoom('mouse', 3, (v, q) => [mx(v, q), sill], 0.9);
+    zoom('ladybird', 3, (v, q) => [v.x, WXW.y1 - 12 - q * 110]);
+    zoom('snail', 3, (v, q) => [v.x + q * 90, sill]);
+    zoom('spider', 2, (v) => [v.x, WXW.y0]);
+    zoom('caterpillar', 3, (v, q) => [WXW.x1 - 58 - q * 66, WXW.y0 + 52 - q * 16]);
+    zoom('bee', 3, (v, q, t) => [v.dir > 0 ? WXW.x0 - 10 + q * (WXW.x1 - WXW.x0 + 20) : WXW.x1 + 10 - q * (WXW.x1 - WXW.x0 + 20), v.y + Math.sin(t * 6) * 8 + Math.sin(t * 2.2) * 12]);
+    zoom('robin', 2.5, (v) => [v.x, sill]);
+    zoom('woodpecker', 2.5, (v, q) => [WXW.x0 + 88, WXW.y0 + 100 + Math.sin(q * 6) * 6]);
+    zoom('hawk', 2, (v, q) => [v.dir > 0 ? WXW.x0 - 20 + q * (WXW.x1 - WXW.x0 + 40) : WXW.x1 + 20 - q * (WXW.x1 - WXW.x0 + 40), v.y + Math.sin(q * 5) * 14]);
+    zoom('badger', 1.8, (v, q) => { const x = v.dir > 0 ? 150 + q * 340 : 490 - q * 340; return [x, evMeadowY(x) + 8]; }, 0.85);
+    zoom('ducks', 1.7, () => [LAKE.x, LAKE.y]);
+    zoom('dragonswarm', 1.6, () => [262, WXW.y1 - 45]);
+  })();
   // ---- the frame loop and taps for Starfall Clearing
   function drawClearing(dt, t) {
     const phase = clearingPhaseNow();

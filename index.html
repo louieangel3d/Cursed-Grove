@@ -2476,7 +2476,7 @@ const CG_DATA = (() => {
   // ======================================================================
   // 1. Configuration & helpers
   // ======================================================================
-  const BUILD = '1.7.12';
+  const BUILD = '1.7.13';
   const W = 640,
     H = 360; // internal canvas resolution; the stage scales it to fit
   const MAX = 8; // terrarium capacity
@@ -8697,6 +8697,7 @@ const CG_DATA = (() => {
     for (const a of shelfActors) {
       const cx = JAR_X[a.jar];
       updateJar(a, petById(a.id), dt, t);
+      relJar(a, petById(a.id), dt);
       if (a.state !== 'held') {
         a.x = clamp(a.x, cx - JAR_HALF, cx + JAR_HALF);
         a.y = clamp(a.y, JAR_TOP + 4, 252 - FEET);
@@ -14760,6 +14761,7 @@ const CG_DATA = (() => {
     const i = state.bugs.findIndex(b => b.id === bugId);
     if (i < 0 || !freeJar(jar) || !recovered(state.bugs[i])) return false;
     const b = state.bugs.splice(i, 1)[0];
+    relForget(b);
     b.jar = jar;
     b.giftAt = Date.now() + rand(8, 16) * HOUR_MS;
     state.pets.push(b);
@@ -14778,6 +14780,7 @@ const CG_DATA = (() => {
       return false;
     }
     state.pets.splice(i, 1);
+    relForget(b);
     delete b.giftAt; // gifts only come from pets that live in a jar
     delete b.jar;
     pushHere(b);
@@ -14812,7 +14815,7 @@ const CG_DATA = (() => {
           g.imageSmoothingEnabled = false;
           g.drawImage(bugAtlas, 0, b.type * 24, 24, 24, 0, 0, 24, 24);
           const label = document.createElement('span');
-          label.textContent = bugName(b);
+          label.textContent = bugName(b) + (relOf(b) ? (relOf(b).kind === 'love' ? ' (in love)' : relOf(b).kind === 'friend' ? ' (friend)' : ' (enemy)') : '');
           el.append(cv, label);
           el.onclick = () => {
             if (movePetToJar(b.id, jar)) {
@@ -15744,6 +15747,12 @@ const CG_DATA = (() => {
   // ---- what's new
   // newest first; players who skipped an update see everything they missed (up to three versions)
   const CHANGELOG = [
+    { v: '1.7.13', notes: [
+      'Bugs can now be best friends, enemies, or fall in love. Bugs that spend time near each other bond, and the pair turns out one of the three. It shows on each bug\'s card.',
+      'Enemies avoid each other in the terrarium and sometimes scuffle. Put them in the same jar and they fight (just a scuffle, nobody gets hurt). Lovers seek each other out, and a cocoon can appear when they are together, in the terrarium or in a jar.',
+      'Relationships end when a bug moves between the terrarium and a jar: they forget each other. So think twice before jarring one half of a couple.',
+      'On the shelf, bugs in different jars can bond too (neighbouring jars faster). If they become friends or fall in love, move them into the same jar to spend time together, and hope for a cocoon. Put enemies together and they will scrap.',
+    ] },
     { v: '1.7.12', notes: [
       'A bug you rehome now stays in its jar on Mossle\'s shelf only until its thank-you letter arrives, then the jar empties. If no letter is coming, it leaves after a day.',
     ] },
@@ -18844,6 +18853,280 @@ function fitPlate() {
       if (Math.abs(p.x - o.x) < 34 && p.y < o.y + 6 && p.y > o.y - hm - 14) { e.stopImmediatePropagation(); e.preventDefault(); plantPick(o); return; }
     }
   }, true);
+  // ======================================================================
+  // 9x. Relationships: best friends, enemies and lovers. Bugs bond by being
+  //     near each other (in the terrarium, or in the jars on the shelf, even
+  //     in different jars). Moving a bug between the terrarium and a jar
+  //     makes it forget everyone.
+  // ======================================================================
+  const REL_KINDS = ['friend', 'foe', 'love'];
+  const allBugs = () => state.bugs.concat((state.pets || []).filter(Boolean));
+  const bugById = id => allBugs().find(x => x.id === id) || null;
+  function relOf(b) {
+    if (!b) return null;
+    for (const k of REL_KINDS) {
+      if (!b[k]) continue;
+      const o = bugById(b[k]);
+      if (o && o[k] === b.id) return { kind: k, other: o };
+      b[k] = null;
+    }
+    return null;
+  }
+  function friendOf(b) { const r = relOf(b); return r && r.kind === "friend" ? r.other : null; }
+  const relPartner = (b, kind) => { const r = relOf(b); return r && r.kind === kind ? r.other : null; };
+  const relOnShelf = b => !!b && Number.isInteger(b.jar) && (state.pets || []).includes(b);
+
+  // what a pair turns into once they have spent enough time together; fixed per pair
+  function relFate(a, b) {
+    const pa = personaOf(a), pb = personaOf(b), r = mulberry(hashStr('rel:' + bondKey(a.id, b.id)))();
+    let foe = 0.2, love = 0.17;
+    if (pa.grumpy || pb.grumpy) foe += 0.2;
+    if (pa.loner || pb.loner) foe += 0.1;
+    if (pa.clingy || pb.clingy || pa.bold || pb.bold) love += 0.08;
+    if (pa.fate || pb.fate) love += 0.15;
+    if (pa.grumpy && pb.grumpy) foe += 0.1;
+    if (types[a.type].legendary || types[b.type].legendary) love = 0;
+    if (r < love) return 'love';
+    if (r < love + foe) return 'foe';
+    return 'friend';
+  }
+  function relMake(a, b, kind, A, O) {
+    a[kind] = b.id; b[kind] = a.id;
+    const nm = `${bugName(a)} and ${bugName(b)}`;
+    if (A && O) {
+      const mx = (A.x + O.x) / 2, my = Math.min(A.y, O.y) - 22;
+      for (let i = 0; i < 7; i++) effects.push({ kind: kind === 'foe' ? 'sparkle' : 'heart', x: mx + rand(-16, 16), y: my + rand(-6, 6), dx: rand(-14, 14), dy: rand(-14, -2), age: -i * 0.12, life: 1.4, color: '#c9c2b4' });
+    }
+    if (kind === 'friend') { Sfx && Sfx.sparkle && Sfx.sparkle(); showToast(`${nm} have become best friends!`, 4200); }
+    else if (kind === 'love') { Sfx && Sfx.sparkle && Sfx.sparkle(); showToast(`${nm} have fallen in love!`, 4800); }
+    else showToast(`${nm} don't get along. They are enemies now.`, 4600);
+    save();
+  }
+  function relBreak(b) {
+    const r = relOf(b);
+    if (!r) return null;
+    b[r.kind] = null; r.other[r.kind] = null;
+    return r;
+  }
+  // moving between the terrarium and a jar: forget everyone
+  function relForget(b) {
+    if (!b) return;
+    const r = relBreak(b), B = bondsOf();
+    Object.keys(B).forEach(k => { if (k.split('|').includes(b.id)) delete B[k]; });
+    if (!r) return;
+    const nm = `${bugName(b)} and ${bugName(r.other)}`;
+    showToast(r.kind === 'love' ? `${nm} were in love. They have forgotten each other.` : r.kind === 'friend' ? `${nm} have forgotten each other.` : `${nm} have forgotten their quarrel.`, 4600);
+  }
+  function friendNote(b) {
+    const r = relOf(b);
+    if (r && r.kind === 'friend') return ['BEST FRIEND', `${bugName(r.other)}. They like being near each other.`, 'heart'];
+    if (r && r.kind === 'love') return ['IN LOVE', `${bugName(r.other)}. A cocoon may come soon. Moving either one between the terrarium and a jar makes them forget each other.`, 'heart'];
+    if (r && r.kind === 'foe') return ['ENEMY', `${bugName(r.other)}. They avoid each other, and in the same jar they fight.`, 'curse'];
+    let best = null, bs = 0;
+    const B = bondsOf();
+    for (const o of allBugs()) { if (o.id === b.id || relOf(o) || relOnShelf(o) !== relOnShelf(b)) continue; const v = B[bondKey(b.id, o.id)] || 0; if (v > bs) { bs = v; best = o; } }
+    const need = relOnShelf(b) ? FRIEND_NEED : FRIEND_NEED;
+    if (best && bs >= 20) return ['BONDING', `Getting to know ${bugName(best)} (${Math.min(99, Math.floor(bs / need * 100))}%)`, 'heart'];
+    return ['FRIENDS', relOnShelf(b) ? 'No bonds yet. Jar neighbours get to know each other, and sharing a jar is quicker.' : 'No best friend yet. Bugs bond by spending time together.', 'heart'];
+  }
+  function makeFriends(a, b, A, O) { relMake(a, b, 'friend', A, O); }
+
+  // ---- terrarium
+  const relCool = {};
+  function relFight(A, O) {
+    for (const X of [A, O]) { setState(X, 'grump', 1.4); bubble(X, '!', 1.4); X.react = 0.8; }
+    A.dir = O.x > A.x ? 1 : -1; O.dir = -A.dir;
+    const mx = (A.x + O.x) / 2, my = Math.max(A.y, O.y) - 8;
+    for (let i = 0; i < 9; i++) effects.push({ kind: 'sparkle', x: mx + rand(-8, 8), y: my + rand(-6, 6), dx: rand(-22, 22), dy: rand(-18, -2), age: -i * 0.05, life: 0.7, color: i % 2 ? '#d9d2c4' : '#9a948a' });
+    A.x = clamp(A.x - A.dir * 8, 55, 585); O.x = clamp(O.x - O.dir * 8, 55, 585);
+    Sfx && Sfx.bugChirp && Sfx.bugChirp(A.kind, A.x);
+  }
+  function relMate(A, O) {
+    const a = findVisibleBug(A.id), o = findVisibleBug(O.id);
+    if (a && o && createCocoon(A, O)) return true;
+    return false;
+  }
+  function friendsTick(dt) {
+    if (!state || showcase || animations.length < 2) return;
+    dt = Math.min(dt, 0.25);
+    const B = bondsOf(), now = lifeT();
+    for (let i = 0; i < animations.length; i++) {
+      const A = animations[i], a = findVisibleBug(A.id);
+      if (!a) continue;
+      relOf(a);
+      for (let j = i + 1; j < animations.length; j++) {
+        const O = animations[j], o = findVisibleBug(O.id);
+        if (!o) continue;
+        const dx = Math.abs(O.x - A.x), dy = Math.abs(O.y - A.y), r = relOf(a);
+        if (r && r.other === o && r.kind === 'foe') {
+          if (dx < 100 && dy < 50 && ['idle', 'walk'].includes(A.state) && ['idle', 'walk'].includes(O.state)) {
+            const k = bondKey(a.id, o.id);
+            if (dx < 40 && dy < 22 && now > (relCool[k] || 0)) { relCool[k] = now + 18 + Math.random() * 22; relFight(A, O); }
+            else if (!A.friendGo && !O.friendGo && now > (A.fleeAt || 0)) {
+              const mover = A.state === 'idle' ? A : O, other = mover === A ? O : A;
+              mover.fleeAt = now + 6;
+              const side = mover.x < other.x ? -1 : 1, tx = clamp(mover.x + side * rand(90, 170), 55, 585);
+              goTo(mover, tx, mover.kind === 'flyer' ? clamp(mover.y + rand(-20, 20), 112, 209) : groundY(mover.y), 'idle');
+              bubble(mover, '?', 1.2);
+            }
+          }
+          continue;
+        }
+        if (dx >= 62 || dy >= 46) continue;
+        if (A.state === 'toy' || O.state === 'toy') continue;
+        if (r && r.other === o) {
+          if (now - (A.lastFriendHeart || 0) > (r.kind === 'love' ? 4 : 9) && Math.random() < dt * (r.kind === 'love' ? 0.7 : 0.4)) {
+            A.lastFriendHeart = now;
+            effects.push({ kind: 'heart', x: (A.x + O.x) / 2, y: Math.min(A.y, O.y) - 20, age: 0, life: 1.2 });
+          }
+          if (r.kind === 'love' && dx < 40 && dy < 20 && ['idle', 'walk'].includes(A.state) && ['idle', 'walk'].includes(O.state) && Math.random() < dt / 45) {
+            setState(A, 'greet', 1.6); setState(O, 'greet', 1.6);
+            A.dir = O.x > A.x ? 1 : -1; O.dir = -A.dir;
+            for (let h = 0; h < 4; h++) effects.push({ kind: 'heart', x: (A.x + O.x) / 2 + rand(-10, 10), y: Math.min(A.y, O.y) - 22 - h * 4, age: -h * 0.2, life: 1.4 });
+            relMate(A, O);
+          }
+          continue;
+        }
+        if (relOf(a) || relOf(o)) continue;
+        const asleep = ['sleep', 'nap'].includes(A.state) && ['sleep', 'nap'].includes(O.state);
+        let rate = asleep ? 2 : 1;
+        if ((A.persona.grumpy || O.persona.grumpy) && !(A.persona.grumpy && O.persona.grumpy)) rate *= 0.4;
+        if (A.persona.fate || O.persona.fate) rate *= 2.5;
+        if (A.persona.wise || O.persona.wise) rate *= 1.4;
+        if (A.persona.loner || O.persona.loner) rate *= (A.persona.fate || O.persona.fate) ? 0.5 : 0.1;
+        const k = bondKey(a.id, o.id), before = B[k] || 0;
+        B[k] = before + dt * rate; friendDirty = true;
+        if (before < FRIEND_NEED && B[k] >= FRIEND_NEED) relMake(a, o, relFate(a, o), A, O);
+      }
+    }
+    // friends and lovers go looking for each other
+    friendAcc -= dt;
+    if (friendAcc <= 0) {
+      friendAcc = 6 + Math.random() * 8;
+      const pairs = [];
+      for (const A of animations) {
+        const a = findVisibleBug(A.id), r = a && relOf(a);
+        if (!r || r.kind === 'foe') continue;
+        const O = animations.find(x => x.id === r.other.id);
+        if (O && A.id < O.id) pairs.push([A, O]);
+      }
+      const ready = x => ['idle', 'walk'].includes(x.state) && !x.toyHead && !['eat', 'sleep', 'toy'].includes(x.then) && !x.friendGo;
+      const pick = pairs.filter(([A, O]) => ready(A) && ready(O) && Math.hypot(A.x - O.x, A.y - O.y) > 80);
+      if (pick.length && Math.random() < 0.7) {
+        const [A, O] = choose(pick), mover = Math.random() < 0.5 ? A : O, other = mover === A ? O : A;
+        if (!(other.kind === 'flyer' && mover.kind !== 'flyer')) {
+          const side = mover.x < other.x ? -1 : 1, tx = clamp(other.x + side * 26, 55, 585);
+          mover.friendGo = other.id;
+          goTo(mover, tx, mover.kind === 'flyer' ? other.y : groundY(other.y), 'idle');
+          bubble(mover, 'heart', 1.6);
+        }
+      }
+    }
+    for (const A of animations) {
+      if (!A.friendGo) continue;
+      const O = animations.find(x => x.id === A.friendGo);
+      if (!O || !['idle', 'walk'].includes(A.state)) { if (!O || A.state !== 'walk') A.friendGo = null; continue; }
+      if (Math.hypot(A.x - O.x, A.y - O.y) < 44) {
+        A.friendGo = null;
+        if (['idle', 'walk'].includes(O.state)) {
+          setState(A, 'greet', 1.6); setState(O, 'greet', 1.6);
+          A.dir = O.x > A.x ? 1 : -1; O.dir = -A.dir;
+          effects.push({ kind: 'heart', x: (A.x + O.x) / 2, y: Math.min(A.y, O.y) - 22, age: 0, life: 1.3 });
+          effects.push({ kind: 'heart', x: (A.x + O.x) / 2 + 8, y: Math.min(A.y, O.y) - 30, age: -0.25, life: 1.3 });
+          Sfx && Sfx.bugChirp && Sfx.bugChirp(A.kind, A.x);
+          const a = findVisibleBug(A.id);
+          if (a && relPartner(a, 'love') && Math.random() < 0.45) relMate(A, O);
+        }
+      } else if (A.state === 'idle') A.friendGo = null;
+    }
+    friendSaveAt -= dt;
+    if (friendSaveAt <= 0) { friendSaveAt = 20; if (friendDirty) { friendDirty = false; save(); } }
+  }
+
+  // ---- the shelf: bonds grow in real time, between jars too
+  let relShelfAt = Date.now();
+  function jarCocoon(a, b, jar) {
+    if (showcase || state.cocoons.length || Date.now() - state.lastCocoonAt < COCOON_COOLDOWN_MS) return null;
+    if (types[a.type].legendary || types[b.type].legendary || !recovered(a) || !recovered(b) || jarBugs(jar).length > 2) return null;
+    const now = Date.now();
+    const c = {
+      id: `c${now}_${Math.random().toString(36).slice(2, 7)}`,
+      parents: [a, b].map(p => ({ type: p.type, tags: p.tags.map(t => ({ ...t })), visualFx: [...p.visualFx] })),
+      x: 320, y: 270, createdAt: now, placedAt: now, jar,
+      hatchMs: COCOON_MIN_MS + irand((COCOON_MAX_MS - COCOON_MIN_MS) / 60000 + 1) * 60000, heatMs: 0,
+    };
+    state.cocoons.push(c); state.lastCocoonAt = now;
+    save(); buildJars(); updateHUD();
+    return c;
+  }
+  function relShelfTick() {
+    if (!state || !Array.isArray(state.pets)) return;
+    const nowMs = Date.now(), dt = Math.min(30, Math.max(0, (nowMs - relShelfAt) / 1000));
+    relShelfAt = nowMs;
+    if (!dt || document.hidden && dt > 5) return;
+    const pets = state.pets.filter(b => b && Number.isInteger(b.jar)), B = bondsOf();
+    for (const p of pets) relOf(p);
+    for (let i = 0; i < pets.length; i++) for (let j = i + 1; j < pets.length; j++) {
+      const a = pets[i], o = pets[j], r = relOf(a);
+      if (r && r.other === o) {
+        if (r.kind === 'love' && a.jar === o.jar && Math.random() < dt / 900) {
+          if (jarCocoon(a, o, a.jar)) {
+            showToast(`${bugName(a)} and ${bugName(o)} have left a cocoon in jar ${a.jar + 1}!`, 5200);
+            if (scene === 'shelf') sparkleAt(JAR_X[a.jar], JAR_GROUND - 27, 18, '#fff0c8');
+          }
+        }
+        continue;
+      }
+      if (r || relOf(o)) continue;
+      const gap = Math.abs(a.jar - o.jar), rate = gap === 0 ? 1.2 : gap === 1 ? 0.5 : 0.2, k = bondKey(a.id, o.id), before = B[k] || 0;
+      B[k] = before + dt * rate; friendDirty = true;
+      if (before < FRIEND_NEED && B[k] >= FRIEND_NEED) {
+        const A = jarActors.find(x => x && x.id === a.id), O = jarActors.find(x => x && x.id === o.id);
+        relMake(a, o, relFate(a, o), scene === 'shelf' && A && O && A.jar === O.jar ? A : null, scene === 'shelf' && A && O && A.jar === O.jar ? O : null);
+      }
+    }
+    if (friendDirty) { friendDirty = false; save(); }
+  }
+  setInterval(relShelfTick, 2000);
+
+  // per-frame behaviour for bugs sharing a jar
+  const jarRelCool = {};
+  function relJar(a, b, dt) {
+    if (!a || !b || ['held', 'flip', 'drop', 'fall', 'sleep', 'nap', 'hide', 'play'].includes(a.state)) return;
+    const r = relOf(b);
+    if (!r) return;
+    const P = jarActors.find(x => x && x.id === r.other.id);
+    if (!P || P.jar !== a.jar || ['held', 'flip', 'drop', 'fall'].includes(P.state)) return;
+    const d = Math.hypot(P.x - a.x, P.y - a.y), now = lifeT(), k = bondKey(a.id, P.id);
+    if (r.kind === 'foe') {
+      if (a.fightUntil > now) {
+        a.x += (a.x < P.x ? -1 : 1) * 10 * dt * Math.sin(now * 20);
+        if (Math.random() < dt * 8) effects.push({ kind: 'sparkle', x: (a.x + P.x) / 2 + rand(-6, 6), y: a.y - 6 + rand(-6, 4), dx: rand(-16, 16), dy: rand(-14, -2), age: 0, life: 0.6, color: Math.random() < 0.5 ? '#d9d2c4' : '#9a948a' });
+        if (Math.random() < dt * 3) a.hopY = 5;
+        return;
+      }
+      if (a.fightEnd) { a.fightEnd = false; const side = a.x < P.x ? -1 : 1, cx = JAR_X[a.jar]; jarGo(a, clamp(a.x + side * 50, cx - JAR_HALF + 10, cx + JAR_HALF - 10), a.y + FEET, 'idle'); return; }
+      if (d < 26 && now > (jarRelCool[k] || 0)) {
+        jarRelCool[k] = now + 14 + Math.random() * 18;
+        for (const X of [a, P]) { X.fightUntil = now + 1.6; X.fightEnd = true; X.state = 'idle'; X.timer = 1.8; X.moving = false; X.react = 0.8; bubble(X, '!', 1.6); }
+        Sfx && Sfx.bugChirp && Sfx.bugChirp(a.kind, a.x);
+        return;
+      }
+      if (a.state === 'idle' && a.id < P.id && now > (a.chargeAt || 0)) {
+        a.chargeAt = now + 7 + Math.random() * 9;
+        if (Math.random() < 0.6) { jarGo(a, P.x - Math.sign(P.x - a.x || 1) * 16, P.y + FEET, 'idle'); bubble(a, '!', 1.2); }
+      }
+      return;
+    }
+    if (a.state === 'idle' && d > 46 && now > (a.seekAt || 0)) {
+      a.seekAt = now + (r.kind === 'love' ? 5 : 9) + Math.random() * 8;
+      if (Math.random() < 0.65) { jarGo(a, P.x + (a.x < P.x ? -20 : 20), P.y + FEET, 'idle'); }
+    }
+    if (d < 40 && now > (a.heartAt || 0)) {
+      a.heartAt = now + (r.kind === 'love' ? 3.5 : 8) + Math.random() * 4;
+      effects.push({ kind: 'heart', x: (a.x + P.x) / 2, y: Math.min(a.y, P.y) - 20, age: 0, life: 1.2 });
+    }
+  }
   // ---- the frame loop and taps for Starfall Clearing
   function drawClearing(dt, t) {
     const phase = clearingPhaseNow();

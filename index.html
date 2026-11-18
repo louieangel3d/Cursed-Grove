@@ -2476,7 +2476,7 @@ const CG_DATA = (() => {
   // ======================================================================
   // 1. Configuration & helpers
   // ======================================================================
-  const BUILD = '1.7.10';
+  const BUILD = '1.7.12';
   const W = 640,
     H = 360; // internal canvas resolution; the stage scales it to fit
   const MAX = 8; // terrarium capacity
@@ -2569,6 +2569,27 @@ const CG_DATA = (() => {
   const CHEAP_FLIPS = { basket: 350, goldbait: 250, chalk: 160 };
   SHOP.items.forEach(it => { if (CHEAP_FLIPS[it.id]) it.price = CHEAP_FLIPS[it.id]; });
   SHOP.slotPrices = SHOP.slotPrices.map(v => nicePrice(v * 0.7));
+  // ======================================================================
+  // Plants, part two: slower and much bigger growth, and plants that bear
+  // things (honeydew, peek petals, royal jelly) once they are mature.
+  // ======================================================================
+  const BEARERS = {
+    'decor-honeyvine': { seed: 'seed-honeyvine', give: 'honeydew', everH: 24, cap: 3 },
+    'decor-peekbush': { seed: 'seed-peekbush', give: 'peek', everH: 24, cap: 3 },
+    'decor-jellyblossom': { seed: 'seed-jellyblossom', give: 'jelly', everH: 48, cap: 3 },
+  };
+  [
+    ['honeyvine', 'Honeyvine', 'A climbing vine that grows tall and sweet.', 'decor-dripcrystal', 'seed-honeyvine', 'Honeyvine Seeds', 500, 96, 'Grows over about 4 days. Once mature it bears one Honeydew Drop a day (up to 3 wait on the vine). Tap the vine to pick them.'],
+    ['peekbush', 'Peek Petal Bush', 'A low, bushy plant with pale blue petals.', 'decor-waterbowl', 'seed-peekbush', 'Peek Petal Seeds', 1400, 120, 'Grows over about 5 days. Once mature it bears one Peek Petal a day (up to 3 wait on the bush). Tap the bush to pick them.'],
+    ['jellyblossom', 'Royal Jelly Blossom', 'A tall flower that drips golden jelly.', 'decor-starbells', 'seed-jellyblossom', 'Jelly Blossom Seeds', 2600, 168, 'Grows over about 7 days. Once mature it bears one Royal Jelly every 2 days (up to 3 wait on the flower). Tap the flower to pick them.'],
+  ].forEach(([k, name, blurb, dims, sid, sname, price, growH, desc]) => {
+    SHOP.items.push({ id: 'decor-' + k, legacy: true, anchor: 'ground', cat: 'decor', price: price, name: name, desc: blurb, plant: dims });
+    SHOP.items.push({ id: sid, cat: 'seed', plant: 'decor-' + k, growH: growH, anchor: 'ground', price: price, name: sname, desc: desc, icon: 0 });
+  });
+  // Older seeds now grow for longer, and grow a lot bigger while they do.
+  const GROW_H2 = { 'seed-moss': 36, 'seed-clover': 96, 'seed-mushroom': 72, 'seed-ivy': 120, 'seed-glowcap': 168, 'seed-tallcap': 240, 'seed-mooncap': 360 };
+  SHOP.items.forEach(it => { if (it.cat === 'seed' && GROW_H2[it.id]) it.growH = GROW_H2[it.id]; });
+  SHOP.items.forEach(it => { if (it.id === 'seed-clover') it.desc = 'Tiny seeds that sprout into lucky clover. It keeps on growing, taller and taller, until it almost reaches the top of the tank.'; });
 
   const $ = id => document.getElementById(id);
   const canvas = $('game'),
@@ -6507,7 +6528,7 @@ const CG_DATA = (() => {
     return x >= MOSSLE.x + 10 && x <= MOSSLE.x + MOSSLE.w - 10 && y >= MOSSLE.y && y <= 228;
   }
   function jarAt(x, y) {
-    const shown = state.rehomed.slice(-JAR_SLOTS.length);
+    const shown = shelfRecs().slice(-JAR_SLOTS.length);
     const i = JAR_SLOTS.findIndex(([jx, jy]) => x >= jx && x <= jx + 18 && y >= jy - 24 && y <= jy);
     return i >= 0 && i < shown.length ? shown[i] : null;
   }
@@ -6548,7 +6569,7 @@ const CG_DATA = (() => {
     tickSpeech(dt);
     ctx.drawImage(bgMerch, 0, 0, W, H);
     // jars: the most recently rehomed bugs wait on the shelves
-    const shown = state.rehomed.slice(-JAR_SLOTS.length);
+    const shown = shelfRecs().slice(-JAR_SLOTS.length);
     JAR_SLOTS.forEach(([x, y], i) => {
       if (i < Math.max(shown.length, 3) && !packHides(i)) drawJar(x, y, shown[i], t, i);
     });
@@ -6704,6 +6725,7 @@ const CG_DATA = (() => {
     const x = Math.round(pos.x), y = Math.round(pos.y);
     const look = PLANT_LOOK[it.id] || PLANT_LOOK['decor-moss'];
     const [dw, dh] = decorSize(it);
+    if (PLANT_PROC[it.id]) { PLANT_PROC[it.id](pos, pr, t); return; }
     if (pr < 0.14 && it.anchor === 'ground') {
       const grow = pr / 0.14, sway = Math.round(Math.sin(t * 2 + x));
       ctx.fillStyle = '#4e3624';
@@ -7171,6 +7193,7 @@ const CG_DATA = (() => {
     ctx.save(); ctx.imageSmoothingEnabled = false;
     ctx.globalAlpha = alpha;
     if (pos.plantedAt && plantProgress(pos) < 1) { drawGrowingPlant(it, pos, plantProgress(pos), t); ctx.restore(); return; }
+    if (pos.plantedAt && PLANT_PROC[it.id]) { PLANT_PROC[it.id](pos, 1, t); ctx.restore(); return; }
     { const gs = plantBig(pos); if (gs > 1) { ctx.translate(Math.round(x), Math.round(y)); ctx.scale(gs, gs); ctx.translate(-Math.round(x), -Math.round(y)); } }
     if (PROC_DECOR[it.id]) { ctx.restore(); drawProcDecor(it, x, y, t, alpha); return; }
     // Frame-by-frame ambient motion; strong effects are reserved for prestige pieces.
@@ -13119,10 +13142,16 @@ const CG_DATA = (() => {
   }
   const unreadCount = () => (state ? mailState().inbox.filter(l => !l.read).length : 0);
   function mailKick() { const m = mailState(); if (!m.nextStoryAt && !m.storyDone.length) m.nextStoryAt = Date.now() + (MAIL.fast ? 800 : 15 * 60000); }
+  // A rehomed bug waits in its jar until its thank-you letter arrives (or a day, if no letter is coming).
+  function shelfRecs() {
+    const now = Date.now(), pend = mailState().pending;
+    return state.rehomed.filter(r => { const p = pend.find(q => q.rec && q.rec.id === r.id && (q.kind === 'thanks' || q.kind === 'legend')); return now < (p ? p.at : (r.leaveAt || r.at + 24 * HOUR_MS)); });
+  }
   function queueThanks(rec) {
     const m = mailState(), legend = !!types[rec.type].legendary, first = !m.inbox.some(l => l.kind === 'thanks') && !m.pending.some(p => p.kind === 'thanks');
     if (Math.random() > (legend ? 0.9 : 0.7) && !first) return;
     const delay = first && !legend ? (2 + Math.random() * 4) * HOUR_MS : (24 + Math.random() * 48) * HOUR_MS;
+    rec.leaveAt = Date.now() + (MAIL.fast ? 1500 : delay);
     m.pending.push({ kind: legend ? 'legend' : 'thanks', at: Date.now() + (MAIL.fast ? 1500 : delay), rec: { id: rec.id, type: rec.type, variant: rec.variant, visualFx: rec.visualFx, nick: rec.nick || '', at: Date.now() } });
     save();
   }
@@ -14543,8 +14572,9 @@ const CG_DATA = (() => {
     const it = DECOR_ITEMS[o.item];
     if (!it) return 1;
     const dh = decorSize(it)[1];
-    if (it.anchor === 'edge') return 1.3;
-    const want = dh <= 45 ? 2 : dh <= 75 ? 1.6 : dh <= 110 ? 1.35 : 1.2;
+    if (typeof PLANT_PROC !== 'undefined' && PLANT_PROC[o.item]) return o.item === 'decor-clover' ? 2.4 : 1;
+    if (it.anchor === 'edge') return 1.8;
+    const want = dh <= 45 ? 3.2 : dh <= 75 ? 2.4 : dh <= 110 ? 1.7 : 1.35;
     return clamp(Math.min(want, (o.y - 66) / dh), 1, want);
   }
   const plantWorth = o => { const s = seedFor(o.item); return s ? Math.round(s.price * (s.vault ? 1.5 : 3)) : 0; };
@@ -15457,7 +15487,7 @@ const CG_DATA = (() => {
   const PACK_T = { arrive: 0.45, jar: 0.95, grab: 1.75, drop: 2.25, lid: 2.85, say: 2.9, carry: 3.55, end: 4.35 };
   function startPacking(b, offer) {
     if (PACK) finishPacking();
-    const n = Math.min(state.rehomed.length, JAR_SLOTS.length);
+    const n = Math.min(shelfRecs().length, JAR_SLOTS.length);
     PACK = { t0: performance.now() / 1000, type: b.type, paid: offer.paid, slot: JAR_SLOTS[(n - 1) % JAR_SLOTS.length], hide: n - 1, said: false, lidFx: false, landFx: false, name: types[b.type].name, line: pickLine(MERCHANT.thanks, offer.paid).replace('{bug}', types[b.type].name) };
   }
   function packSay() {
@@ -15714,6 +15744,13 @@ const CG_DATA = (() => {
   // ---- what's new
   // newest first; players who skipped an update see everything they missed (up to three versions)
   const CHANGELOG = [
+    { v: '1.7.12', notes: [
+      'A bug you rehome now stays in its jar on Mossle\'s shelf only until its thank-you letter arrives, then the jar empties. If no letter is coming, it leaves after a day.',
+    ] },
+    { v: '1.7.11', notes: [
+      'Seeds now grow for much longer and keep getting bigger the whole time. Clover takes 4 days and ends up almost touching the top of the tank; the other plants take 1.5 to 15 days and grow far larger than before.',
+      'Three new plants that bear things once mature. Honeyvine (4 days) gives a Honeydew Drop a day. Peek Petal Bush (5 days) gives a Peek Petal a day. Royal Jelly Blossom (7 days) gives a Royal Jelly every 2 days. Up to 3 wait on the plant, and you tap the plant to pick them.',
+    ] },
     { v: '1.7.10', notes: [
       'Lantern Oil (puts one rock back) is now really always on Oakley\'s shelf, in the SEARCH tab, with seven a day. The Picnic Basket (three rocks) is the one that comes and goes.',
     ] },
@@ -18717,6 +18754,96 @@ function fitPlate() {
       () => { journalTabs(); });
   }
   Object.assign(REWARDS, { out10: [150], out30: [400, ['honeydew']], out60: [900, ['jelly']], outAll: [2500, ['incense']], outWatcher: [250], outBlood: [250], outComet: [300], outAurora: [250], outYear: [500], outShower: [200] });
+  // ======================================================================
+  // 9w. Plants, part two (behaviour and art): tall procedural growth, and
+  //     bearing plants you tap to pick from.
+  // ======================================================================
+  SHOP_TIERS.std['seed-honeyvine'] = 2;
+  SHOP_ALWAYS.add('seed-honeyvine');
+  SHOP_TIERS.mid['seed-peekbush'] = 1;
+  SHOP_TIERS.rare['seed-jellyblossom'] = 1;
+
+  function plantFruit(o) {
+    const b = BEARERS[o && o.item];
+    if (!b || !o.plantedAt || !plantReady(o)) return 0;
+    const base = o.lastDrop || (o.plantedAt + growMs(o.item, o));
+    return clamp(Math.floor((Date.now() - base) / (b.everH * HOUR_MS)), 0, b.cap);
+  }
+  function plantPick(o) {
+    const n = plantFruit(o), b = BEARERS[o.item];
+    if (!n) return 0;
+    const every = b.everH * HOUR_MS, base = o.lastDrop || (o.plantedAt + growMs(o.item, o)), total = Math.floor((Date.now() - base) / every);
+    o.lastDrop = total >= b.cap ? Date.now() : base + n * every;
+    state.inventory[b.give] = (state.inventory[b.give] || 0) + n;
+    save(); updateHUD();
+    const name = ITEM[b.give].name;
+    showToast(`Picked ${n} ${name}${n > 1 ? 's' : ''}`, 2600);
+    sparkleAt(o.x, o.y - 30, 12, '#ffe27a');
+    return n;
+  }
+  const PLANT_CFG = {
+    'decor-clover': { n: [3, 9], spread: 54, top: 0.97, leaf: ['#3f8f4a', '#7ccf6a'], stem: '#3f7a40', kind: 'clover', flower: '#fbeaf0' },
+    'decor-honeyvine': { n: [3, 6], spread: 40, top: 0.8, leaf: ['#4f8f3f', '#86c862'], stem: '#5a8a38', kind: 'heart', drop: ['#e8a82a', '#ffe27a'] },
+    'decor-peekbush': { n: [5, 9], spread: 56, top: 0.4, leaf: ['#3f6f4a', '#6eae62'], stem: '#3c6240', kind: 'heart', petal: ['#a8c8ff', '#f4fbff'] },
+    'decor-jellyblossom': { n: [2, 3], spread: 26, top: 0.72, leaf: ['#3f8a5a', '#78c890'], stem: '#3a7a52', kind: 'heart', bloom: ['#f2a8c4', '#ffe2a8'], drop: ['#f0b040', '#fff0a0'] },
+  };
+  const PLANT_PROC = {};
+  let PG = null;
+  const fr = (x, y, w, h, c) => { const q = PG || ctx; q.fillStyle = c; q.fillRect(Math.round(x), Math.round(y), w, h); };
+  function plantSeedling(x, y, t, cfg, pr) {
+    fr(x - 7, y - 1, 14, 1, '#4e3624'); fr(x - 6, y - 3, 12, 2, '#6a4a30'); fr(x - 4, y - 4, 8, 1, '#8c6a44');
+    const h = 3 + Math.round(pr / 0.14 * 6), sw = Math.round(Math.sin(t * 2 + x));
+    fr(x, y - 4 - h, 1, h, cfg.stem); fr(x - 3 + sw, y - 5 - h, 3, 2, cfg.leaf[0]); fr(x + 1 + sw, y - 6 - h, 3, 2, cfg.leaf[1]);
+  }
+  function plantLeaf(x, y, side, cfg) {
+    if (cfg.kind === 'clover') { const lx = x + side * 3; fr(lx - 2, y - 3, 4, 3, cfg.leaf[0]); fr(lx + (side > 0 ? 2 : -6), y - 1, 4, 3, cfg.leaf[1]); fr(lx - 2, y + 1, 4, 3, cfg.leaf[0]); fr(lx - 1, y - 2, 2, 1, cfg.leaf[1]); }
+    else { fr(x + (side > 0 ? 1 : -5), y - 1, 5, 3, cfg.leaf[0]); fr(x + (side > 0 ? 2 : -4), y - 2, 3, 1, cfg.leaf[1]); }
+  }
+  function plantDrop(x, y, cfg, t, k) {
+    const gl = 0.5 + 0.5 * Math.sin(t * 2.4 + k * 2);
+    const q = PG || ctx, g = q.createRadialGradient(x, y, 0, x, y, 12); g.addColorStop(0, `rgba(255,226,122,${(0.35 * gl).toFixed(3)})`); g.addColorStop(1, 'rgba(255,226,122,0)'); q.fillStyle = g; q.fillRect(x - 12, y - 12, 24, 24);
+    if (cfg.petal) { fr(x - 5, y - 2, 11, 4, cfg.petal[0]); fr(x - 2, y - 5, 5, 10, cfg.petal[0]); fr(x - 2, y - 2, 4, 4, '#ffe27a'); fr(x - 4, y - 4, 2, 2, cfg.petal[1]); }
+    else { fr(x - 3, y - 2, 6, 7, cfg.drop[0]); fr(x - 2, y - 4, 4, 2, cfg.drop[0]); fr(x - 1, y - 6, 2, 2, cfg.drop[0]); fr(x - 2, y - 1, 2, 3, cfg.drop[1]); }
+  }
+  function drawPlantProc(id, pos, pr, t) {
+    const cfg = PLANT_CFG[id], x = Math.round(pos.x), y = Math.round(pos.y);
+    if (pr < 0.14) { plantSeedling(x, y, t, cfg, pr); return; }
+    const hmax = Math.max(30, (y - 74) * cfg.top), r = mulberry(hashStr(String(pos.uid || id))), n = Math.round(cfg.n[0] + (cfg.n[1] - cfg.n[0]) * pr), g = Math.pow(pr, 0.8), spread = 10 + (cfg.spread - 10) * g;
+    fr(x - 9, y - 1, 18, 1, '#4e3624'); fr(x - 8, y - 3, 16, 2, '#6a4a30'); fr(x - 6, y - 4, 12, 1, '#8c6a44');
+    const tips = [];
+    for (let i = 0; i < n; i++) {
+      const bx = x + ((i + 0.5) / n - 0.5) * spread, h = Math.max(8, hmax * g * (0.62 + 0.38 * r())), lean = (r() - 0.5) * 10, ph = r() * 6;
+      let lx = bx;
+      for (let yy = 0; yy < h; yy += 2) {
+        const u = yy / h, sx = bx + lean * u * u + Math.sin(t * 1.1 + ph + u * 2) * 1.6 * u;
+        fr(sx, y - 4 - yy, 2, 2, cfg.stem); lx = sx;
+        if (yy > 5 && Math.floor(yy / 2) % 3 === 1) plantLeaf(sx, y - 4 - yy, (Math.floor(yy / 12) + i) % 2 ? 1 : -1, cfg);
+      }
+      tips.push([lx, y - 4 - h, h]);
+      plantLeaf(lx, y - 4 - h, 1, cfg); plantLeaf(lx, y - 2 - h, -1, cfg);
+      if (cfg.flower && pr > 0.7 && i % 2 === 0) { fr(lx - 2, y - 9 - h, 5, 4, cfg.flower); fr(lx - 1, y - 10 - h, 3, 1, cfg.flower); fr(lx, y - 8 - h, 1, 2, '#f0c8d8'); }
+      if (cfg.bloom && pr > 0.6) { const s = Math.round(3 + 4 * pr); fr(lx - s, y - 6 - h, s * 2 + 1, 4, cfg.bloom[0]); fr(lx - s + 1, y - 9 - h, s * 2 - 1, 3, cfg.bloom[0]); fr(lx - 2, y - 7 - h, 5, 3, cfg.bloom[1]); }
+    }
+    const k = plantFruit(Object.assign({}, pos, { item: id }));
+    for (let i = 0; i < k; i++) { const tp = tips[i % tips.length], fx = tp[0] + ((i % 2) ? 5 : -5), fy = tp[1] + Math.min(14, tp[2] * 0.35) + i * 3 + Math.sin(t * 2 + i) * 0.8; plantDrop(fx, fy + (cfg.bloom ? 6 : 6), cfg, t, i); }
+  }
+  Object.keys(PLANT_CFG).forEach(id => { PLANT_PROC[id] = (pos, pr, t) => drawPlantProc(id, pos, pr, t); });
+  // icons for the shop and the satchel
+  ['honeyvine', 'peekbush', 'jellyblossom'].forEach(k => {
+    const id = 'decor-' + k, d = { w: 44, h: 60, draw: (g, t, w, h) => { PG = g; try { drawPlantProc(id, { x: w / 2, y: h - 2, uid: k, plantedAt: 1, lastDrop: 1 }, 1, t); } finally { PG = null; } } };
+    PROC_DECOR[id] = d; PROC_DECOR['seed-' + k] = d;
+  });
+
+  // tap a mature plant to pick what it bears
+  canvas.addEventListener('pointerdown', e => {
+    if (scene !== 'terrarium' || decorMode || modalOpen() || showcase) return;
+    const p = canvasPoint(e);
+    for (const o of state.decorations) {
+      if (!BEARERS[o.item] || !plantFruit(o)) continue;
+      const hm = Math.max(30, (o.y - 74) * PLANT_CFG[o.item].top);
+      if (Math.abs(p.x - o.x) < 34 && p.y < o.y + 6 && p.y > o.y - hm - 14) { e.stopImmediatePropagation(); e.preventDefault(); plantPick(o); return; }
+    }
+  }, true);
   // ---- the frame loop and taps for Starfall Clearing
   function drawClearing(dt, t) {
     const phase = clearingPhaseNow();

@@ -848,6 +848,48 @@ button:focus-visible { outline: 3px solid #ffc56a; outline-offset: 2px; }
 .gd-dots i { width: calc(var(--px) * 7); height: calc(var(--px) * 7); background: #d8c08c; border: calc(var(--px) * 1) solid #b8844e; }
 .gd-dots i.on { background: #7a4a24; border-color: #4a2e18; }
 
+/* journal: tabs, sub-toggle, bugs list, family tree */
+.shop-tab.tiny { flex: 0 0 calc(var(--px) * 26); min-width: 0; padding: 0; }
+.journal-sub { display: flex; gap: calc(var(--px) * 3); margin: calc(var(--px) * -1) calc(var(--px) * 4) calc(var(--px) * 4) 0; }
+.journal-sub button { flex: none; padding: calc(var(--px) * 2) calc(var(--px) * 8); font: inherit; font-size: calc(var(--px) * 8); letter-spacing: .04em; color: #6b4c2c; background: #efd9a6; border: calc(var(--px) * 2) solid #c9a56a; cursor: pointer; }
+.journal-sub button.on { background: #7a4a24; border-color: #4a2e18; color: #fff3d0; }
+.bl-key { display: flex; flex-wrap: wrap; gap: calc(var(--px) * 10); margin: calc(var(--px) * 2) 0 calc(var(--px) * 6); font-size: calc(var(--px) * 8); color: #6b4c2c; }
+.bl-key span, .bl-rel { display: inline-flex; align-items: center; gap: calc(var(--px) * 4); }
+.bl-key .sc-ico, .bl-rel .sc-ico { width: calc(var(--px) * 12); height: calc(var(--px) * 12); flex: none; }
+.love .sc-ico { fill: #d9506a; } .friend .sc-ico { fill: #4f9a4a; } .foe .sc-ico { fill: #b0402e; } .bond .sc-ico, .none .sc-ico { fill: #b89a6a; }
+.bl-list { display: grid; gap: calc(var(--px) * 4); }
+.bl-row { display: grid; grid-template-columns: calc(var(--px) * 28) 1fr auto; align-items: center; gap: calc(var(--px) * 8); text-align: left; padding: calc(var(--px) * 4) calc(var(--px) * 8); font: inherit; color: #4a3423; background: #f7e8c0; border: calc(var(--px) * 2) solid #c9a56a; cursor: pointer; }
+.bl-row:hover { background: #fff4d0; }
+.bl-ico { width: calc(var(--px) * 24); height: calc(var(--px) * 24); image-rendering: pixelated; }
+.bl-main strong { display: inline-block; margin-right: calc(var(--px) * 6); }
+.bl-main span { display: block; font-size: calc(var(--px) * 8); color: #8a6c48; }
+.bl-badge { display: inline-block; margin-right: calc(var(--px) * 4); padding: 0 calc(var(--px) * 4); font-style: normal; font-size: calc(var(--px) * 7); color: #5a3a1c; background: #efd9a6; border: calc(var(--px) * 1) solid #b8844e; vertical-align: middle; }
+.bl-badge.love { color: #fff; background: #d9506a; border-color: #a83450; }
+.bl-rel { font-size: calc(var(--px) * 9); max-width: calc(var(--px) * 190); text-align: right; }
+.bl-rel.none, .bl-rel.bond { color: #8a6c48; }
+.ft { margin-top: calc(var(--px) * 6); padding: 0 calc(var(--px) * 6) calc(var(--px) * 16); }
+.ft-kids .ft-lab { flex: none; }
+.ft-parents { display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--px) * 8); margin-top: calc(var(--px) * 4); }
+.ft-card { display: flex; gap: calc(var(--px) * 8); align-items: flex-start; padding: calc(var(--px) * 6); background: #f7e8c0; border: calc(var(--px) * 2) solid #c9a56a; }
+.ft-card.me { align-items: center; background: #efd9a6; border-color: #b8844e; }
+.ft-ico { flex: none; width: calc(var(--px) * 28); height: calc(var(--px) * 28); image-rendering: pixelated; }
+.ft-ico.s { width: calc(var(--px) * 16); height: calc(var(--px) * 16); vertical-align: middle; margin-right: calc(var(--px) * 3); }
+.ft-lab { display: block; font-size: calc(var(--px) * 7); letter-spacing: .08em; color: #8a6c48; }
+.ft-card strong { display: block; } .ft-card em { display: block; font-size: calc(var(--px) * 8); color: #8a6c48; }
+.ft-chips { display: flex; flex-wrap: wrap; gap: calc(var(--px) * 3); margin-top: calc(var(--px) * 4); }
+.ft-chip { padding: 0 calc(var(--px) * 5); font-size: calc(var(--px) * 8); color: #5a3a1c; background: #e8f0d0; border: calc(var(--px) * 1) solid #9ab87a; }
+.ft-chip.fx { background: #e6e0f4; border-color: #a898d0; }
+.ft-chip.pass { background: #ffe9a0; border-color: #c9843a; box-shadow: 0 0 0 calc(var(--px) * 1) #c9843a; }
+.ft-none { font-size: calc(var(--px) * 8); color: #a08a68; }
+.ft-join { height: calc(var(--px) * 14); position: relative; }
+.ft-join i { position: absolute; left: 25%; right: 25%; top: calc(var(--px) * 2); bottom: calc(var(--px) * 2); border: calc(var(--px) * 2) solid #b8844e; border-top: 0; }
+.ft-join i::after { content: ''; position: absolute; left: calc(50% - var(--px)); bottom: calc(var(--px) * -4); width: calc(var(--px) * 2); height: calc(var(--px) * 4); background: #b8844e; }
+.ft-child { display: grid; grid-template-columns: auto 1fr; gap: calc(var(--px) * 10); align-items: center; }
+.ft-line { display: flex; gap: calc(var(--px) * 5); align-items: center; font-size: calc(var(--px) * 9); margin: calc(var(--px) * 1) 0; }
+.ft-line .sc-ico { width: calc(var(--px) * 11); height: calc(var(--px) * 11); flex: none; fill: #9a7a4a; }
+.ft-kids { display: flex; flex-wrap: wrap; align-items: center; gap: calc(var(--px) * 6); margin-top: calc(var(--px) * 8); }
+.ft-kid { font-size: calc(var(--px) * 9); padding: calc(var(--px) * 2) calc(var(--px) * 6); background: #f7e8c0; border: calc(var(--px) * 1) solid #c9a56a; }
+
 .fine-print { font-size: calc(var(--tpx) * 8) !important; color: #8d6945 !important; text-align: center; }
 .ledger { display: flex; flex-direction: column; gap: calc(var(--px) * 4); margin: calc(var(--px) * 6) 0; }
 .ledger-row {
@@ -2569,7 +2611,7 @@ const CG_DATA = (() => {
       mult: 1.6,
     },
     { chance: 12, names: ['Moonlit', 'Mossbound', 'Ancient', 'Jewel', 'Enchanted', 'Glimmering', 'Luminous', 'Wise', 'Mischievous', 'Hearthkin', 'Stormtouched'], mult: 3.2 },
-    { chance: 3, names: ['Legend', 'Dreamborn', 'Crownmarked', 'Starblessed', 'Everbloom', 'Fatebound', 'Gloamwalker', 'Sunforged', 'Wishkeeper'], mult: 9 },
+    { chance: 3, names: ['Legend', 'Dreamborn', 'Crownmarked', 'Starblessed', 'Everbloom', 'Fatebound', 'Gloamwalker', 'Sunforged', 'Wishkeeper', 'Lovebug'], mult: 9 },
   ];
 
   // Recolour recipes for species 50–69, in order. `source` is the row to copy.
@@ -2832,7 +2874,7 @@ const CG_DATA = (() => {
   // ======================================================================
   // 1. Configuration & helpers
   // ======================================================================
-  const BUILD = '1.7.25';
+  const BUILD = '1.7.26';
   const W = 640,
     H = 360; // internal canvas resolution; the stage scales it to fit
   const MAX = 8; // terrarium capacity
@@ -4051,6 +4093,7 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
       <div class="modal-actions">${ready && !b.revealed ? '<button class="action primary" id="revealBtn">✦ REVEAL RARITY TAGS</button>' : ''}${ready && b.revealed && !isPet ? '<button class="action" id="toMossleBtn">TAKE TO MOSSLE</button>' : ''}${!ready && !isPet ? groomButtonHTML(b) : ''}${!isPet ? tankMoveHTML(b) : ''}<button class="action" id="treatBtn">GIVE A TREAT</button>${isPet ? '<button class="action" id="toTankBtn">RETURN TO TERRARIUM</button>' : ready && state.pets.some((p, i) => !p && !cocoonInJar(i)) ? '<button class="action" id="toJarBtn">MOVE TO A JAR</button>' : ''}<button class="action" id="watchBtn">${isPet ? 'BACK TO SHELF' : 'WATCH IN TERRARIUM'}</button></div>
       <i class="sc-div"></i>
       <div class="sc-notes">${notes.map(n => `<div class="sc-note">${scIcon(n[2])}<div><span>${n[0]}</span><b>${n[1]}</b></div></div>`).join('')}</div>
+      ${familyHTML(b)}
     </div>`;
   }
 
@@ -4525,7 +4568,7 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
       smelly: has('Smelly'), loner: has('Loner'), clumsy: has('Clumsy'), greedy: has('Greedy'), clingy: has('Clingy'),
       cheerful: has('Cheerful'), playful: has('Playful'), brave: has('Brave'), dainty: has('Dainty'), lucky: has('Lucky'),
       luminous: has('Luminous', 'Gloamwalker'), wise: has('Wise'), mischief: has('Mischievous'), hearth: has('Hearthkin'), storm: has('Stormtouched'),
-      everbloom: has('Everbloom'), fate: has('Fatebound'), gloam: has('Gloamwalker'), sun: has('Sunforged'), wishkeeper: has('Wishkeeper'),
+      everbloom: has('Everbloom'), lovebug: has('Lovebug'), fate: has('Fatebound'), gloam: has('Gloamwalker'), sun: has('Sunforged'), wishkeeper: has('Wishkeeper'),
     };
   }
   function pickHome(id) {
@@ -5945,7 +5988,7 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
   }
   function syncRocks() {
     syncDaily();
-    rocks = rockPositions.map((r, i) => ({
+    rocks = woodLayout().map((r, i) => ({
       ...r,
       id: i,
       difficulty: rockLevel(i),
@@ -8264,7 +8307,7 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
     const now = Date.now();
     const c = {
       id: `c${now}_${Math.random().toString(36).slice(2, 7)}`,
-      parents: [first, second].map(p => ({ type: p.type, tags: p.tags.map(t => ({ ...t })), visualFx: [...p.visualFx] })),
+      parents: [first, second].map(p => ({ id: p.id, name: bugName(p), type: p.type, tags: p.tags.map(t => ({ ...t })), visualFx: [...p.visualFx] })),
       x: clamp(Math.round((a.x + b.x) / 2), 60, 580),
       y: clamp(Math.round(Math.max(a.y, b.y) + 3), 248, 287),
       createdAt: now,
@@ -8406,8 +8449,10 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
     return true;
   }
   function hatchedBaby(c) {
-    const parent = choose(c.parents);
+    const parent = choose(c.parents), pIdx = c.parents.indexOf(parent);
     const newborn = newBug(parent.type);
+    const fam = { from: pIdx, tag: null, fx: null, parents: c.parents.map(p => ({ id: p.id || null, name: p.name || '', type: p.type, tags: (p.tags || []).map(t => ({ name: t.name, tier: t.tier })), fx: [...(p.visualFx || [])] })) };
+    newborn.family = fam;
     newborn.foundAt = Date.now() - recoveryDuration(newborn) - 1000;
     newborn.revealed = true;
     newborn.bredFrom = c.parents.map(p => p.type);
@@ -8417,10 +8462,15 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
       const old = newborn.tags[0];
       const inherit = choose(traits);
       newborn.tags[0] = { ...inherit };
+      fam.tag = { name: inherit.name, from: pIdx };
       newborn.effectBaseValue = Math.max(1, Math.round(newborn.effectBaseValue * (inherit.mult || 1) / (old.mult || 1)));
     }
     const effectsPool = c.parents.flatMap(p => Array.isArray(p.visualFx) ? p.visualFx : []);
-    if (effectsPool.length && Math.random() < 0.5) newborn.visualFx = uniqueFx([choose(effectsPool), ...newborn.visualFx]);
+    if (effectsPool.length && Math.random() < 0.5) {
+      const fxId = choose(effectsPool);
+      newborn.visualFx = uniqueFx([fxId, ...newborn.visualFx]);
+      fam.fx = { id: fxId, from: c.parents.findIndex(p => (p.visualFx || []).includes(fxId)) };
+    }
     newborn.value = Math.max(1, Math.round(newborn.effectBaseValue * effectsValueMultiplier(newborn.visualFx)));
     return newborn;
   }
@@ -10665,6 +10715,7 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
       ['Gloamwalker', 'Magical. Awake and glowing at night, with dark ripples. It never gets cross.'],
       ['Sunforged', 'Shiny and magical. Gold sparks rise from it by day.'],
       ['Wishkeeper', 'Magical. Mossle always pays the wished-for bonus for it.'],
+      ['Lovebug', 'One of the very rarest. Falls in love far more easily, and its couples leave cocoons sooner.'],
     ]],
   ];
   function bugKeyHTML() {
@@ -14091,7 +14142,7 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
     const at = (k, fn) => fn(MAPLOC[k].x, MAPLOC[k].y);
     at('terrarium', (x, y) => { // a cottage with a glass terrarium dome
       cblob(g, x, y + 2, 38, 8, '#8fb86c', 2); cr(g, x - 28, y - 22, 28, 22, '#a07448'); for (let i = 0; i < 5; i++) cr(g, x - 28 + i * 6, y - 22, 2, 22, '#7e5a34');
-      for (let i = 0; i < 8; i++) cr(g, x - 32 + i * 2, y - 36 + i * 2, 36 - i * 4, 2, i % 2 ? '#8a2e22' : '#b0402e'); cr(g, x - 18, y - 40, 8, 10, '#6a5a50'); cr(g, x - 18, y - 40, 8, 2, '#8a7a70');
+      cr(g, x - 10, y - 46, 6, 12, '#6a5a50'); cr(g, x - 11, y - 46, 8, 2, '#8a7a70'); for (let i = 0; i < 8; i++) { const w = 8 + i * 4; cr(g, x - 14 - w / 2, y - 36 + i * 2, w, 2, i % 2 ? '#8a2e22' : '#b0402e'); cr(g, x - 14 - w / 2, y - 36 + i * 2, 2, 2, '#d0583e'); } cr(g, x - 32, y - 20, 36, 2, '#5a1e16');
       cr(g, x - 12, y - 12, 8, 12, '#5a3a22'); cr(g, x - 10, y - 6, 2, 2, '#e8c14c'); cr(g, x - 26, y - 16, 8, 8, '#ffe9a0'); cr(g, x - 26, y - 16, 8, 2, '#8a6642');
       cblob(g, x + 20, y - 8, 14, 14, '#bfe6ee'); cblob(g, x + 20, y - 4, 11, 9, '#7ab86a'); cr(g, x + 18, y - 12, 2, 6, '#6b4a2a'); cblob(g, x + 18, y - 14, 4, 3, '#d6403a'); cr(g, x + 14, y - 16, 4, 2, '#ffffff');
       cr(g, x + 24, y - 20, 2, 4, '#e8fafa'); cr(g, x + 6, y, 28, 2, '#7a5a34');
@@ -14608,6 +14659,7 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
         let rate = asleep ? 2 : 1;
         if ((A.persona.grumpy || O.persona.grumpy) && !(A.persona.grumpy && O.persona.grumpy)) rate *= 0.4;
         if (A.persona.fate || O.persona.fate) rate *= 2.5;
+        if (A.persona.lovebug || O.persona.lovebug) rate *= (A.persona.lovebug && O.persona.lovebug) ? 3 : 2;
         if (A.persona.wise || O.persona.wise) rate *= 1.4;
         if (A.persona.loner || O.persona.loner) rate *= (A.persona.fate || O.persona.fate) ? 0.5 : 0.1;
         const k = bondKey(a.id, o.id), before = B[k] || 0;
@@ -15515,6 +15567,7 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
     // ---- legendary
     if (p.everbloom && (a.moving || Math.random() < dt * 0.3) && Math.random() < dt * 1.4) fxPuff('spore', a.x + rand(-10, 10), a.y - 8 + rand(-6, 4), rand(-5, 5), rand(2, 7), 1.4, '#f6a6c8');
     if (p.fate && Math.random() < dt * 0.25) fxPuff('heart', a.x + rand(-10, 10), a.y - 10, rand(-3, 3), rand(-12, -6), 1.2, '#fa9eac');
+    if (p.lovebug && Math.random() < dt * 0.35) fxPuff('heart', a.x + rand(-10, 10), a.y - 12, rand(-3, 3), rand(-12, -6), 1.3, '#ff7aa0');
     if (p.gloam && Math.random() < dt * 0.4) fxPuff('void', a.x + rand(-26, 26), a.y + rand(-18, 14), 0, 0, 1.1, '#8372bd');
     if (p.sun && !night && Math.random() < dt * 1.0) fxPuff('spark', a.x + rand(-13, 13), a.y + rand(-14, 6), rand(-4, 4), rand(-10, -3), 1.2, '#ffd66b');
     if (p.wishkeeper && Math.random() < dt * 0.4) fxPuff('spark', a.x + rand(-13, 13), a.y + rand(-14, 6), rand(-3, 3), rand(-9, -3), 1.3, '#ffe9a8');
@@ -16126,6 +16179,14 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
   // ---- what's new
   // newest first; players who skipped an update see everything they missed (up to three versions)
   const CHANGELOG = [
+    { v: '1.7.26', notes: [
+      'New YOUR BUGS tab in the Journal: everyone at a glance, with a heart for lovers, a smile for best friends and a spark for rivals, and who each one is bonded with.',
+      'The Journal tabs are tidier. The Outside log now sits under Collection, and the Guide and settings are behind the small ? tab.',
+      'New rarest trait, Lovebug. These bugs fall in love much more easily, and their couples leave cocoons sooner.',
+      'Hatched bugs have a family tree on their card: who the parents were, and which traits and effects were passed down.',
+      'The rocks in the Cursed Woodland now come in four layouts that rotate daily, all kept clear of the trees and the buttons.',
+      'The home cottage on the map has its roof the right way up.',
+    ] },
     { v: '1.7.25', notes: [
       'Things wander through the Cursed Grove now: a fox, a doe and her fawn, a hedgehog, a frog from behind a rock, and an owl on the old trunk at night.',
       'Who turns up depends on the time of day, and they pass behind or in front of the rocks properly.',
@@ -16550,14 +16611,18 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
   // 9y. The Journal as a bug encyclopedia: species entries, achievements, and the settings cog.
   // ======================================================================
   const capFirst = k => k.charAt(0).toUpperCase() + k.slice(1);
-  const JOURNAL_TABS = [['collection', 'COLLECTION'], ['ach', 'ACHIEVEMENTS'], ['guide', 'FIELD GUIDE'], ['satchel', 'SATCHEL'], ['outside', 'OUTSIDE']];
+  // Four tabs plus a small "?". Species and the Outside log share the COLLECTION tab,
+  // switched with a little toggle underneath.
+  const JOURNAL_TABS = [['bugs', 'BUGS'], ['collection', 'COLLECTION'], ['ach', 'ACHIEVEMENTS'], ['satchel', 'SATCHEL'], ['guide', '?']];
   function journalTabsHTML(active) {
-    const open = '<div class="journal' + '-tabs">';
-    return open + JOURNAL_TABS.map(([k, l]) => `<button class="shop-tab${k === active ? ' on' : ''}" id="tab${capFirst(k)}">${l}</button>`).join('') + '</div>';
+    const open = '<div class="journal' + '-tabs">', on = active === 'outside' ? 'collection' : active;
+    let h = open + JOURNAL_TABS.map(([k, l]) => `<button class="shop-tab${k === on ? ' on' : ''}${k === 'guide' ? ' tiny' : ''}" id="tab${capFirst(k)}"${k === 'guide' ? ' title="How to play, settings and your save" aria-label="Guide and settings"' : ''}>${l}</button>`).join('') + '</div>';
+    if (on === 'collection') h += `<div class="journal-sub"><button class="${active === 'collection' ? 'on' : ''}" id="subSpecies">SPECIES</button><button class="${active === 'outside' ? 'on' : ''}" id="subOutside">OUTSIDE THE WINDOW</button></div>`;
+    return h;
   }
   function journalTabs() {
-    const go = { Collection: showCollection, Ach: showAchievements, Guide: showGuide, Satchel: showSatchel, Outside: showOutside };
-    Object.keys(go).forEach(k => { const el = $('tab' + k); if (el) el.onclick = go[k]; });
+    const go = { Bugs: showBugs, Collection: showCollection, Ach: showAchievements, Guide: showGuide, Satchel: showSatchel, Outside: showOutside, SubSpecies: showCollection, SubOutside: showOutside };
+    Object.keys(go).forEach(k => { const el = $('tab' + k) || $('sub' + k.replace(/^Sub/, '')); if (el) el.onclick = go[k]; });
   }
 
   // ---- running totals kept in the save (everything else is worked out from what you own)
@@ -17291,6 +17356,7 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
       <div class="sc-fx-row"><span class="sc-lab">TRAITS</span><div class="tag-row">${tags}</div></div></div>
       ${quirkRowHTML(b, isPet, ready)}
       <div class="modal-actions">${ready && !b.revealed ? '<button class="action primary" id="revealBtn">✦ REVEAL TAGS</button>' : ''}${ready && b.revealed && !isPet ? '<button class="action" id="toMossleBtn">TO MOSSLE</button>' : ''}${!ready && !isPet ? groomButtonHTML(b) : ''}${!isPet ? tankMoveHTML(b) : ''}${canFeed ? `<button class="action${lvl >= 2 ? ' primary' : ''}" id="feedThisBtn"${left <= 0 ? ' disabled' : ''}>${left <= 0 ? 'NO FOOD LEFT' : 'FEED IT'}</button>` : ''}<button class="action" id="treatBtn">TREAT</button>${isPet ? '<button class="action" id="toTankBtn">TO TERRARIUM</button>' : ready && state.pets.some((p, i) => !p && !cocoonInJar(i)) ? '<button class="action" id="toJarBtn">TO A JAR</button>' : ''}<button class="action" id="watchBtn">${isPet ? 'BACK' : 'WATCH'}</button></div>
+      ${familyHTML(b)}
     </div>`;
   }
 
@@ -19329,6 +19395,7 @@ function fitPlate() {
     if (pa.loner || pb.loner) foe += 0.1;
     if (pa.clingy || pb.clingy || pa.bold || pb.bold) love += 0.08;
     if (pa.fate || pb.fate) love += 0.15;
+    if (pa.lovebug || pb.lovebug) love = Math.max(love + 0.3, 0.75);
     if (pa.grumpy && pb.grumpy) foe += 0.1;
     if (types[a.type].legendary || types[b.type].legendary) love = 0;
     if (r < love) return 'love';
@@ -19437,6 +19504,7 @@ function fitPlate() {
         let rate = asleep ? 2 : 1;
         if ((A.persona.grumpy || O.persona.grumpy) && !(A.persona.grumpy && O.persona.grumpy)) rate *= 0.4;
         if (A.persona.fate || O.persona.fate) rate *= 2.5;
+        if (A.persona.lovebug || O.persona.lovebug) rate *= (A.persona.lovebug && O.persona.lovebug) ? 3 : 2;
         if (A.persona.wise || O.persona.wise) rate *= 1.4;
         if (A.persona.loner || O.persona.loner) rate *= (A.persona.fate || O.persona.fate) ? 0.5 : 0.1;
         const k = bondKey(a.id, o.id), before = B[k] || 0;
@@ -19496,7 +19564,7 @@ function fitPlate() {
     const now = Date.now();
     const c = {
       id: `c${now}_${Math.random().toString(36).slice(2, 7)}`,
-      parents: [a, b].map(p => ({ type: p.type, tags: p.tags.map(t => ({ ...t })), visualFx: [...p.visualFx] })),
+      parents: [a, b].map(p => ({ id: p.id, name: bugName(p), type: p.type, tags: p.tags.map(t => ({ ...t })), visualFx: [...p.visualFx] })),
       x: 320, y: 270, createdAt: now, placedAt: now, jar,
       hatchMs: COCOON_MIN_MS + irand((COCOON_MAX_MS - COCOON_MIN_MS) / 60000 + 1) * 60000, heatMs: 0,
     };
@@ -19514,7 +19582,7 @@ function fitPlate() {
     for (let i = 0; i < pets.length; i++) for (let j = i + 1; j < pets.length; j++) {
       const a = pets[i], o = pets[j], r = relOf(a);
       if (r && r.other === o) {
-        if (r.kind === 'love' && a.jar === o.jar && Math.random() < dt / 900) {
+        if (r.kind === 'love' && a.jar === o.jar && Math.random() < dt / ((personaOf(a).lovebug || personaOf(o).lovebug) ? 450 : 900)) {
           if (jarCocoon(a, o, a.jar)) {
             showToast(`${bugName(a)} and ${bugName(o)} have left a cocoon in jar ${a.jar + 1}!`, 5200);
             if (scene === 'shelf') sparkleAt(JAR_X[a.jar], JAR_GROUND - 27, 18, '#fff0c8');
@@ -19523,7 +19591,7 @@ function fitPlate() {
         continue;
       }
       if (r || relOf(o)) continue;
-      const gap = Math.abs(a.jar - o.jar), rate = gap === 0 ? 1.2 : gap === 1 ? 0.5 : 0.2, k = bondKey(a.id, o.id), before = B[k] || 0;
+      const gap = Math.abs(a.jar - o.jar), rate = (gap === 0 ? 1.2 : gap === 1 ? 0.5 : 0.2) * ((personaOf(a).lovebug || personaOf(o).lovebug) ? 2 : 1), k = bondKey(a.id, o.id), before = B[k] || 0;
       B[k] = before + dt * rate; friendDirty = true;
       if (before < FRIEND_NEED && B[k] >= FRIEND_NEED) {
         const A = jarActors.find(x => x && x.id === a.id), O = jarActors.find(x => x && x.id === o.id);
@@ -19786,6 +19854,23 @@ function fitPlate() {
       P(-4, y + 2, '#3a2a3a', 2, 2); P(6, y + 2, '#3a2a3a', 2, 2); P(0, y, '#a04060', 2, 2);
     }
   }
+
+  // ---- several rock layouts. One is used each day, cycling, so the woods feel different.
+  //      Every rock stays clear of the big trunks at the sides and of the buttons along the bottom.
+  const ROCK_LAYOUTS = [
+    [{ x: 158, y: 270, s: 1.1 }, { x: 258, y: 214, s: 0.9 }, { x: 362, y: 272, s: 1.08 }, { x: 452, y: 222, s: 0.96 }, { x: 500, y: 276, s: 0.9 }, { x: 340, y: 192, s: 0.8 }, { x: 118, y: 216, s: 0.84 }],
+    [{ x: 124, y: 232, s: 0.98 }, { x: 214, y: 276, s: 1.08 }, { x: 304, y: 226, s: 0.96 }, { x: 396, y: 278, s: 1.08 }, { x: 504, y: 232, s: 0.92 }, { x: 452, y: 194, s: 0.8 }, { x: 166, y: 192, s: 0.78 }],
+    [{ x: 128, y: 270, s: 1.08 }, { x: 196, y: 208, s: 0.88 }, { x: 504, y: 270, s: 1.04 }, { x: 432, y: 208, s: 0.88 }, { x: 292, y: 192, s: 0.78 }, { x: 336, y: 240, s: 0.94 }, { x: 238, y: 276, s: 1.0 }],
+    [{ x: 118, y: 210, s: 0.86 }, { x: 222, y: 242, s: 0.98 }, { x: 332, y: 200, s: 0.82 }, { x: 440, y: 246, s: 1.0 }, { x: 512, y: 212, s: 0.86 }, { x: 160, y: 278, s: 1.08 }, { x: 356, y: 280, s: 1.0 }],
+  ];
+  let rockLayoutForce = -1;
+  function rockLayoutIndex() {
+    if (rockLayoutForce >= 0) return rockLayoutForce;
+    const m = String(dateKey()).match(/(\d+)-(\d+)-(\d+)/);
+    const day = m ? Math.floor(Date.UTC(+m[1], +m[2] - 1, +m[3]) / 864e5) : 0;
+    return ((day % ROCK_LAYOUTS.length) + ROCK_LAYOUTS.length) % ROCK_LAYOUTS.length;
+  }
+  const woodLayout = () => ROCK_LAYOUTS[rockLayoutIndex()];
   // ======================================================================
   // 9s3. Woodland encounters. Now and then something wanders through the
   //      Cursed Grove while you search: a fox, a doe and her fawn, a hedgehog,
@@ -20079,6 +20164,99 @@ function fitPlate() {
     else if (o.st === 'sit' || o.st === 'in') { o.st = 'jump'; o.jx = o.x; o.jy = o.gy; o.hopT = 0; }
     sparkleAt(p.x, p.y - 6, 5, '#fff1ad');
     return true;
+  }
+  // ======================================================================
+  // 9z. The "Your Bugs" journal tab (everyone at a glance) and the family tree
+  //     on a hatched bug's specimen card.
+  // ======================================================================
+  SC_ICON.smile = ['..####..', '.#....#.', '#.#..#.#', '#......#', '#.#..#.#', '#..##..#', '.#....#.', '..####..'];
+  SC_ICON.bolt = ['....##..', '...##...', '..##....', '.######.', '...##...', '..##....', '..#.....', '.#......'];
+  SC_ICON.egg = ['...##...', '..####..', '.######.', '.######.', '########', '########', '.######.', '..####..'];
+
+  function paintSpIcons(root) {
+    (root || document).querySelectorAll('canvas[data-sp]').forEach(cv => {
+      const g = cv.getContext('2d'), i = +cv.dataset.sp;
+      g.imageSmoothingEnabled = false; g.clearRect(0, 0, 24, 24);
+      if (types[i]) g.drawImage(bugAtlas, 0, 24 * i, 24, 24, 0, 0, 24, 24);
+    });
+  }
+  const spIcon = (type, cls) => `<canvas class="${cls || 'bl-ico'}" width="24" height="24" data-sp="${type}"></canvas>`;
+  const lovebugOf = b => !!b && Array.isArray(b.tags) && b.tags.some(t => t.name === 'Lovebug');
+
+  // ---- the lowdown on everyone
+  function bugRelLine(b) {
+    const r = relOf(b);
+    if (r && r.kind === 'love') return { cls: 'love', ico: 'heart', rank: 0, text: `In love with <b>${escHTML(bugName(r.other))}</b>` };
+    if (r && r.kind === 'friend') return { cls: 'friend', ico: 'smile', rank: 1, text: `Best friends with <b>${escHTML(bugName(r.other))}</b>` };
+    if (r && r.kind === 'foe') return { cls: 'foe', ico: 'bolt', rank: 2, text: `Rivals with <b>${escHTML(bugName(r.other))}</b>` };
+    const fn = friendNote(b);
+    if (fn && fn[0] === 'BONDING') return { cls: 'bond', ico: 'smile', rank: 3, text: fn[1] };
+    return { cls: 'none', ico: 'smile', rank: 4, text: 'No close bonds yet' };
+  }
+  function showBugs() {
+    const all = allBugs().filter(Boolean);
+    const rows = all.map(b => ({ b, rel: bugRelLine(b) })).sort((x, y) => x.rel.rank - y.rel.rank || bugName(x.b).localeCompare(bugName(y.b)));
+    const n = k => Math.round(rows.filter(r => r.rel.cls === k).length / 2);
+    const loves = n('love'), friends = n('friend'), foes = n('foe');
+    const bits = [`<strong>${all.length}</strong> ${all.length === 1 ? 'bug' : 'bugs'}`];
+    if (loves) bits.push(`${loves} ${loves === 1 ? 'couple' : 'couples'} in love`);
+    if (friends) bits.push(`${friends} best-friend ${friends === 1 ? 'pair' : 'pairs'}`);
+    if (foes) bits.push(`${foes} ${foes === 1 ? 'rivalry' : 'rivalries'}`);
+    const rowHTML = ({ b, rel }) => {
+      const sp = types[b.type], ready = recovered(b), pct = Math.floor(recovery(b) * 100), j = jarOf(b);
+      const badges = [];
+      if (b.bredFrom) badges.push('<i class="bl-badge">HATCHED</i>');
+      if (b.revealed && lovebugOf(b)) badges.push('<i class="bl-badge love">LOVEBUG</i>');
+      return `<button class="bl-row" data-id="${b.id}">${spIcon(b.type)}
+        <div class="bl-main"><strong>${escHTML(bugName(b))}</strong>${badges.join('')}
+          <span>${b.nick ? sp.name + ' · ' : ''}${j >= 0 ? 'Jar ' + (j + 1) : 'Terrarium'} · ${ready ? 'Recovered' : 'Recovering ' + pct + '%'}</span></div>
+        <div class="bl-rel ${rel.cls}">${scIcon(rel.ico)}<span>${rel.text}</span></div></button>`;
+    };
+    modal('collection',
+      `${journalTabsHTML('bugs')}<p class="panel-eyebrow">FIELD JOURNAL · YOUR BUGS</p><h2>Your Bugs</h2>
+       <p>${bits.join(' · ')}</p>
+       ${all.length ? `<div class="bl-key"><span class="love">${scIcon('heart')}In love</span><span class="friend">${scIcon('smile')}Best friends</span><span class="foe">${scIcon('bolt')}Rivals</span></div>
+       <div class="bl-list">${rows.map(rowHTML).join('')}</div>
+       <div class="note">Tap a bug for its full card. Bugs bond by spending time near each other, in the terrarium or in the jars.</div>`
+        : '<div class="note">No bugs yet. Open the MAP and head to the Cursed Woodland to find your first one.</div>'}`,
+      () => {
+        journalTabs();
+        paintSpIcons($('modalBody'));
+        $('modalBody').querySelectorAll('.bl-row').forEach(el => { el.onclick = () => inspect(el.dataset.id); });
+      });
+  }
+
+  // ---- family tree
+  const famKids = b => allBugs().filter(x => x && x.family && (x.family.parents || []).some(p => p.id && p.id === b.id));
+  function famChips(tags, fx, passTag, passFx) {
+    const t = (tags || []).map(x => `<span class="ft-chip${passTag === x.name ? ' pass' : ''}">${escHTML(x.name)}</span>`);
+    const e = (fx || []).filter(id => FX_BY_ID[id]).map(id => `<span class="ft-chip fx${passFx === id ? ' pass' : ''}">${FX_BY_ID[id].name}</span>`);
+    return t.concat(e).join('') || '<span class="ft-none">no record</span>';
+  }
+  function familyHTML(b) {
+    const kids = famKids(b);
+    if (!b.bredFrom && !kids.length) return '';
+    const fam = b.family;
+    let h = '<i class="sc-div"></i><div class="ft"><span class="panel-eyebrow">FAMILY TREE</span>';
+    if (b.bredFrom) {
+      const ps = fam ? fam.parents : b.bredFrom.map(t => ({ type: t, name: '', tags: null, fx: null }));
+      const who = i => { const p = ps[i]; return p ? (p.name || types[p.type].name) : 'a parent'; };
+      h += '<div class="ft-parents">' + ps.map((p, i) => `<div class="ft-card">${spIcon(p.type, 'ft-ico')}<div><span class="ft-lab">PARENT ${i + 1}</span><strong>${escHTML(p.name || types[p.type].name)}</strong>
+        ${p.name && p.name !== types[p.type].name ? `<em>${types[p.type].name}</em>` : ''}<div class="ft-chips">${p.tags ? famChips(p.tags, p.fx, fam && fam.tag && fam.tag.from === i ? fam.tag.name : '', fam && fam.fx && fam.fx.from === i ? fam.fx.id : '') : '<span class="ft-none">not recorded</span>'}</div></div></div>`).join('') + '</div>';
+      h += '<div class="ft-join"><i></i></div>';
+      const lines = [];
+      if (fam) {
+        lines.push(`${scIcon('egg')}<span>Takes after <b>${escHTML(who(fam.from))}</b>, so it is a ${types[b.type].name}.</span>`);
+        (b.tags || []).forEach((t, i) => lines.push(`${scIcon('tag')}<span><b>${escHTML(t.name)}</b> ${fam.tag && i === 0 && fam.tag.name === t.name ? `passed down from <b>${escHTML(who(fam.tag.from))}</b>` : 'is new, not inherited'}</span>`));
+        uniqueFx(b.visualFx).forEach(id => lines.push(`${scIcon('leaf')}<span><b>${FX_BY_ID[id].name}</b> ${fam.fx && fam.fx.id === id ? `came from <b>${escHTML(who(fam.fx.from))}</b>` : 'is new, not inherited'}</span>`));
+      } else lines.push(`${scIcon('egg')}<span>Hatched before family records were kept, so only its parents are known.</span>`);
+      h += `<div class="ft-child"><div class="ft-card me">${spIcon(b.type, 'ft-ico')}<div><span class="ft-lab">THIS BUG</span><strong>${escHTML(bugName(b))}</strong></div></div>
+        <div class="ft-lines">${lines.map(l => `<div class="ft-line">${l}</div>`).join('')}</div></div>`;
+    }
+    if (kids.length) h += `<div class="ft-kids"><span class="ft-lab">CHILDREN</span>${kids.map(k => `<span class="ft-kid">${spIcon(k.type, 'ft-ico s')}${escHTML(bugName(k))}</span>`).join('')}</div>`;
+    h += '</div>';
+    requestAnimationFrame(() => paintSpIcons($('modalBody')));
+    return h;
   }
   // ---- the frame loop and taps for Starfall Clearing
   function drawClearing(dt, t) {

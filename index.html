@@ -4090,7 +4090,7 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
       <div class="sc-fx"><div class="sc-fx-row"><span class="sc-lab">VISUAL EFFECTS</span>${pills}${reveal ? `<span class="sc-mult">×${effectsValueMultiplier(b.visualFx).toFixed(2)} value</span>` : ''}</div>
       <div class="sc-fx-row"><span class="sc-lab">TRAITS</span><div class="tag-row">${tags}</div></div></div>
       ${quirkRowHTML(b, isPet, ready)}
-      <div class="modal-actions">${ready && !b.revealed ? '<button class="action primary" id="revealBtn">✦ REVEAL RARITY TAGS</button>' : ''}${ready && b.revealed && !isPet ? '<button class="action" id="toMossleBtn">TAKE TO MOSSLE</button>' : ''}${!ready && !isPet ? groomButtonHTML(b) : ''}${!isPet ? tankMoveHTML(b) : ''}<button class="action" id="treatBtn">GIVE A TREAT</button>${isPet ? '<button class="action" id="toTankBtn">RETURN TO TERRARIUM</button>' : ready && state.pets.some((p, i) => !p && !cocoonInJar(i)) ? '<button class="action" id="toJarBtn">MOVE TO A JAR</button>' : ''}<button class="action" id="watchBtn">${isPet ? 'BACK TO SHELF' : 'WATCH IN TERRARIUM'}</button></div>
+      <div class="modal-actions">${ready && !b.revealed ? '<button class="action primary" id="revealBtn">✦ REVEAL RARITY TAGS</button>' : ''}${ready && b.revealed && !isPet ? '<button class="action" id="toMossleBtn">TAKE TO MOSSLE</button>' : ''}${!ready && !isPet ? groomButtonHTML(b) : ''}${!isPet ? tankMoveHTML(b) : ''}<button class="action" id="treatBtn">GIVE A TREAT</button>${isPet ? '<button class="action" id="toTankBtn">RETURN TO TERRARIUM</button>' : state.pets.some((p, i) => !p && !cocoonInJar(i)) ? '<button class="action" id="toJarBtn">MOVE TO A JAR</button>' : ''}<button class="action" id="watchBtn">${isPet ? 'BACK TO SHELF' : 'WATCH IN TERRARIUM'}</button></div>
       <i class="sc-div"></i>
       <div class="sc-notes">${notes.map(n => `<div class="sc-note">${scIcon(n[2])}<div><span>${n[0]}</span><b>${n[1]}</b></div></div>`).join('')}</div>
       ${familyHTML(b)}
@@ -4435,7 +4435,7 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
         <li><strong>Habitat interactions:</strong> Ground bugs sometimes drink from a Water Bowl. Flying bugs linger around hanging Firefly Lanterns. Crawlers sometimes cross the Great Fallen Log; climbers scale mushroom stems and root arches, and flyers rest high on the caps and other tall decorations. Shelters still provide hiding places. While a recovering bug stays close to a placed Starlight Fountain, its rehabilitation moves at twice the normal speed; the normal timer continues offline. Extra fountains do not stack.</li>
         <li><strong>Daily care:</strong> Tap FEED, then tap in the terrarium to drop food where you like. You get ${PINCHES} pinches a day.</li>
         <li><strong>Handling:</strong> Drag a bug to pick it up. It wriggles and dangles from your finger and swings as you move. Shake it too much and it sulks. Swing it upside down and let go and it lands on its back, cross, then flips over a few seconds later looking confused. Let go over a log, rock or other furnishing (or something in a jar) and it lands on the first thing it can stand on. On the pet shelf you can drag a bug to a different jar to move it in with the others (up to three to a jar).</li>
-        <li><strong>Pet shelf:</strong> Three roomy, furnished jars (up to three bugs in each) for your favourites or rare cocoons. Pets climb, hide, nap in their nest and keep a favourite spot; they sleep at night, glance at their neighbours, and leave a small gift every 10–20 hours that you tap to collect. A cocoon starts incubating when placed in an empty jar; it hatches after 1 hour to 2 days, even while the game is closed.</li>
+        <li><strong>Pet shelf:</strong> Three roomy, furnished jars (up to three bugs in each) for your favourites or rare cocoons. A bug that is still recovering heals twice as fast in a jar. Pets climb, hide, nap in their nest and keep a favourite spot; they sleep at night, glance at their neighbours, and leave a small gift every 10–20 hours that you tap to collect. A cocoon starts incubating when placed in an empty jar; it hatches after 1 hour to 2 days, even while the game is closed.</li>
         <li><strong>Cocoons:</strong> Very rarely, two friendly recovered terrarium bugs leave a small cocoon. Tap it to move it into a free jar. The hatchling takes after one of its parents.</li>
         <li><strong>Heat Shrooms:</strong> Oakley sells three tiers under COCOONS. Warmcap (-4h), Embercap (-12h) and Hearthcap (-24h) speed incubation of a cocoon already in a pet-shelf jar. Use them from the cocoon's card or your satchel. They stack, work offline and are used up once applied.</li>
         <li><strong>Woodland:</strong> Flip the seven rocks a day; once they are all turned, you are done until tomorrow (lever sticks flip a rock for you; oil puts rocks back). Stop each of three timing bars in the green; some rocks are empty.</li>
@@ -8898,7 +8898,7 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
   // A happy pet leaves one small gift every 10–20 hours; it waits (never stacks)
   // until you tap it. Worth a few percent of the pet's value, so a pet is a
   // charming bonus, not a way around Mossle's prices.
-  const giftReady = b => !!b && Number.isFinite(b.giftAt) && Date.now() >= b.giftAt;
+  const giftReady = b => !!b && Number.isFinite(b.giftAt) && Date.now() >= b.giftAt && recovered(b);
   const giftsReady = () => state.pets.filter(giftReady).length;
   function rollGift(b) {
     const r = Math.random();
@@ -8959,7 +8959,7 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
 
   function movePetToJar(bugId, jar) {
     const i = state.bugs.findIndex(b => b.id === bugId);
-    if (i < 0 || !freeJar(jar) || !recovered(state.bugs[i])) return false;
+    if (i < 0 || !freeJar(jar)) return false;
     state.pets[jar] = state.bugs.splice(i, 1)[0];
     state.pets[jar].giftAt = Date.now() + rand(8, 16) * HOUR_MS;
     save();
@@ -8986,14 +8986,14 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
   }
   function pickPet(jar) {
     if (!freeJar(jar)) return;
-    const ready = state.bugs.filter(b => recovered(b));
+    const ready = state.bugs.slice();
     modal(
       'collection',
       `<p class="panel-eyebrow">PET SHELF · JAR ${jar + 1}</p><h2>Choose a favourite</h2>
        ${
          ready.length
-           ? `<p>Pick a recovered bug from the terrarium to live in this jar. You can move it back whenever you like.</p><div class="collection-grid" id="petGrid"></div>`
-           : `<p>No recovered bugs in the terrarium yet. Once a bug has finished recovering, it can move into a jar as a pet.</p>`
+           ? `<p>Pick a bug from the terrarium to live in this jar. A bug that is still recovering heals twice as fast in here. You can move it back whenever you like.</p><div class="collection-grid" id="petGrid"></div>`
+           : `<p>There are no bugs in the terrarium to move yet.</p>`
        }`,
       () => {
         const grid = $('petGrid');
@@ -15190,11 +15190,12 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
   }
   function movePetToJar(bugId, jar) {
     const i = state.bugs.findIndex(b => b.id === bugId);
-    if (i < 0 || !freeJar(jar) || !recovered(state.bugs[i])) return false;
+    if (i < 0 || !freeJar(jar)) return false;
     const b = state.bugs.splice(i, 1)[0];
     relForget(b);
     b.jar = jar;
     b.giftAt = Date.now() + rand(8, 16) * HOUR_MS;
+    b.jarAt = Date.now();
     state.pets.push(b);
     save();
     resetRuntime();
@@ -15212,6 +15213,7 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
     }
     state.pets.splice(i, 1);
     relForget(b);
+    jarBoost(b); delete b.jarAt;
     delete b.giftAt; // gifts only come from pets that live in a jar
     delete b.jar;
     pushHere(b);
@@ -15223,14 +15225,14 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
   }
   function pickPet(jar) {
     if (!freeJar(jar)) return;
-    const ready = state.bugs.filter(b => recovered(b));
+    const ready = state.bugs.slice();
     modal(
       'collection',
       `<p class="panel-eyebrow">PET SHELF · JAR ${jar + 1}</p><h2>Choose a favourite</h2>
        ${
          ready.length
-           ? `<p>Pick a recovered bug from the terrarium to live in this jar. You can move it back whenever you like.</p><div class="collection-grid" id="petGrid"></div>`
-           : `<p>No recovered bugs in the terrarium yet. Once a bug has finished recovering, it can move into a jar as a pet.</p>`
+           ? `<p>Pick a bug from the terrarium to live in this jar. A bug that is still recovering heals twice as fast in here. You can move it back whenever you like.</p><div class="collection-grid" id="petGrid"></div>`
+           : `<p>There are no bugs in the terrarium to move yet.</p>`
        }`,
       () => {
         const grid = $('petGrid');
@@ -15246,7 +15248,7 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
           g.imageSmoothingEnabled = false;
           g.drawImage(bugAtlas, 0, b.type * 24, 24, 24, 0, 0, 24, 24);
           const label = document.createElement('span');
-          label.textContent = bugName(b) + (relOf(b) ? (relOf(b).kind === 'love' ? ' (in love)' : relOf(b).kind === 'friend' ? ' (friend)' : ' (enemy)') : '');
+          label.textContent = bugName(b) + (recovered(b) ? '' : ' (recovering)') + (relOf(b) ? (relOf(b).kind === 'love' ? ' (in love)' : relOf(b).kind === 'friend' ? ' (friend)' : ' (enemy)') : '');
           el.append(cv, label);
           el.onclick = () => {
             if (movePetToJar(b.id, jar)) {
@@ -16186,6 +16188,7 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
       'Hatched bugs have a family tree on their card: who the parents were, and which traits and effects were passed down.',
       'The rocks in the Cursed Woodland now come in four layouts that rotate daily, all kept clear of the trees and the buttons.',
       'The home cottage on the map has its roof the right way up.',
+      'Bugs that are still recovering can now move into a jar on the pet shelf, and they recover twice as fast while they are in there.',
     ] },
     { v: '1.7.25', notes: [
       'Things wander through the Cursed Grove now: a fox, a doe and her fawn, a hedgehog, a frog from behind a rock, and an owl on the old trunk at night.',
@@ -16353,7 +16356,7 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
     return [
       { icon: 'jar', title: 'A grove of cursed bugs', art: ['home'], text: 'Strange little bugs are stuck under a curse. Rescue them, nurse them back to health and give them a home. It looks small at first, but the grove runs deep.' },
       { icon: 'compass', title: 'Find them in the woods', art: ['woods'], text: 'Open the <strong>MAP</strong> and walk to the Cursed Woodland. Tap a rock, then stop the needle in the green to turn it over. You get seven rocks a day. Some are harder, and not everything underneath is a bug.' },
-      { icon: 'feed', title: 'Nurse them back', art: ['shelf'], text: 'Rescued bugs recover slowly, even while the game is closed. Feed them, play with them, scrub off the curse, and tap one to uncover who it really is. Favourites can live in jars on your pet shelf.' },
+      { icon: 'feed', title: 'Nurse them back', art: ['shelf'], text: 'Rescued bugs recover slowly, even while the game is closed. Feed them, play with them, scrub off the curse, and tap one to uncover who it really is. Favourites can live in jars on your pet shelf, where bugs recover twice as fast.' },
       { icon: 'merchant', title: 'Rehome, trade, decorate', art: ['mossle', 'oakley'], text: '<strong>Mossle</strong> rehomes your bugs in her jars and pays you in spores. Spend them at <strong>Oakley\'s</strong> on food, toys and decorations. Their stock changes every day.' },
       { icon: 'star', title: 'Starfall Clearing', art: ['clear'], text: 'Visit after dark. Button wanders the glade with her little travelling shop, lost things turn up, letters arrive, and now and then something stranger passes through.' },
       { icon: 'tree', title: 'A world with its own clock', art: ['sky'], text: 'Your window looks out on the real sky. Weather, moon phases, seasons, festivals and night visitors all follow the calendar, so no two visits are quite the same.' },
@@ -17330,7 +17333,8 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
     const no = String(b.type + 1).padStart(3, '0');
     const lvl = hungerLevel(b), hunger = hungerOf(b), left = feedLeft();
     const bonus = fountainBonus(b) > 1000 ? ' · fountain -' + prettyTime(fountainBonus(b)).replace(' remaining', '') : '';
-    const restore = ready ? '' : `<div class="sc-restore"><div class="sc-restore-top"><span class="panel-eyebrow">RECOVERING · ${prettyTime(remainingRecovery(b)).replace(' remaining', ' left')}${bonus}</span><strong class="sc-pct">${pct}%</strong></div><div class="sc-bar curse"><i style="width:${pct}%"></i></div></div>`;
+    const jarNote = jarOf(b) >= 0 ? ' · 2x speed in a jar' : '';
+    const restore = ready ? '' : `<div class="sc-restore"><div class="sc-restore-top"><span class="panel-eyebrow">RECOVERING · ${prettyTime(remainingRecovery(b)).replace(' remaining', ' left')}${bonus}${jarNote}</span><strong class="sc-pct">${pct}%</strong></div><div class="sc-bar curse"><i style="width:${pct}%"></i></div></div>`;
     const canFeed = ready && (lvl >= 1 || hunger >= 6 * H_MS);
     return `<div class="sc">
       <i class="sc-corner tl"></i><i class="sc-corner tr"></i><i class="sc-corner bl"></i><i class="sc-corner br"></i>
@@ -17355,7 +17359,7 @@ const WOOD_ART = {"bg":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCA
       <div class="sc-fx"><div class="sc-fx-row"><span class="sc-lab">VISUAL EFFECTS</span>${pills}${reveal ? `<span class="sc-mult">×${effectsValueMultiplier(b.visualFx).toFixed(2)} value</span>` : ''}</div>
       <div class="sc-fx-row"><span class="sc-lab">TRAITS</span><div class="tag-row">${tags}</div></div></div>
       ${quirkRowHTML(b, isPet, ready)}
-      <div class="modal-actions">${ready && !b.revealed ? '<button class="action primary" id="revealBtn">✦ REVEAL TAGS</button>' : ''}${ready && b.revealed && !isPet ? '<button class="action" id="toMossleBtn">TO MOSSLE</button>' : ''}${!ready && !isPet ? groomButtonHTML(b) : ''}${!isPet ? tankMoveHTML(b) : ''}${canFeed ? `<button class="action${lvl >= 2 ? ' primary' : ''}" id="feedThisBtn"${left <= 0 ? ' disabled' : ''}>${left <= 0 ? 'NO FOOD LEFT' : 'FEED IT'}</button>` : ''}<button class="action" id="treatBtn">TREAT</button>${isPet ? '<button class="action" id="toTankBtn">TO TERRARIUM</button>' : ready && state.pets.some((p, i) => !p && !cocoonInJar(i)) ? '<button class="action" id="toJarBtn">TO A JAR</button>' : ''}<button class="action" id="watchBtn">${isPet ? 'BACK' : 'WATCH'}</button></div>
+      <div class="modal-actions">${ready && !b.revealed ? '<button class="action primary" id="revealBtn">✦ REVEAL TAGS</button>' : ''}${ready && b.revealed && !isPet ? '<button class="action" id="toMossleBtn">TO MOSSLE</button>' : ''}${!ready && !isPet ? groomButtonHTML(b) : ''}${!isPet ? tankMoveHTML(b) : ''}${canFeed ? `<button class="action${lvl >= 2 ? ' primary' : ''}" id="feedThisBtn"${left <= 0 ? ' disabled' : ''}>${left <= 0 ? 'NO FOOD LEFT' : 'FEED IT'}</button>` : ''}<button class="action" id="treatBtn">TREAT</button>${isPet ? '<button class="action" id="toTankBtn">TO TERRARIUM</button>' : state.pets.some((p, i) => !p && !cocoonInJar(i)) ? '<button class="action" id="toJarBtn">TO A JAR</button>' : ''}<button class="action" id="watchBtn">${isPet ? 'BACK' : 'WATCH'}</button></div>
       ${familyHTML(b)}
     </div>`;
   }
@@ -20258,6 +20262,29 @@ function fitPlate() {
     requestAnimationFrame(() => paintSpIcons($('modalBody')));
     return h;
   }
+
+  // ---- a bug that is still recovering heals twice as fast while it lives in a jar.
+  //      The jar adds as much time again as has passed since it moved in (or since the
+  //      last tick), also while the game is closed, by moving its found time back.
+  function jarBoost(b) {
+    if (!b || !Number.isInteger(b.jar)) return 0;
+    const now = Date.now();
+    if (recovered(b)) { b.jarAt = now; return 0; }
+    const last = Number.isFinite(b.jarAt) ? b.jarAt : now;
+    const extra = Math.max(0, Math.min(now - last, remainingRecovery(b)));
+    if (extra) b.foundAt -= extra;
+    b.jarAt = now;
+    return extra;
+  }
+  let jarBoostSaved = 0;
+  function jarBoostTick() {
+    if (!state || !Array.isArray(state.pets)) return;
+    let changed = false;
+    for (const b of state.pets) if (b && Number.isInteger(b.jar) && !recovered(b) && jarBoost(b)) changed = true;
+    if (changed && Date.now() - jarBoostSaved > 30000) { jarBoostSaved = Date.now(); save(); }
+  }
+  setInterval(jarBoostTick, 5000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) jarBoostTick(); });
   // ---- the frame loop and taps for Starfall Clearing
   function drawClearing(dt, t) {
     const phase = clearingPhaseNow();
